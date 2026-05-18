@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stock Control">
+<title>Control de Stock — Legion S.A.</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #0a0f1e;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --surface3: #243048;
+  --border: rgba(99,120,180,0.18);
+  --accent: #3b82f6;
+  --accent2: #06b6d4;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Sora', sans-serif;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+}
+
+/* ─── SCREENS ─── */
+.screen { display: none; flex-direction: column; min-height: 100vh; min-height: -webkit-fill-available; }
+.screen.active { display: flex; }
+
+/* ─── HEADER ─── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+.header-logo {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.header-title { font-size: 15px; font-weight: 700; letter-spacing: 0.01em; }
+.header-sub { font-size: 11px; color: var(--text2); font-family: var(--mono); margin-top: 1px; }
+.header-back {
+  background: none; border: none; color: var(--accent); font-size: 22px;
+  cursor: pointer; padding: 4px; display: flex; align-items: center;
+}
+.header-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* ─── CONTENT ─── */
+.content { flex: 1; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* ─── UPLOAD SCREEN ─── */
+.hero-section {
+  text-align: center;
+  padding: 40px 0 30px;
+}
+.hero-icon {
+  width: 90px; height: 90px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(6,182,212,0.2));
+  border: 2px solid rgba(59,130,246,0.3);
+  border-radius: 24px;
+  margin: 0 auto 24px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+  box-shadow: 0 0 40px rgba(59,130,246,0.15);
+}
+.hero-title { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+.hero-subtitle { color: var(--text2); font-size: 14px; line-height: 1.6; }
+
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--surface);
+  margin-top: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(59,130,246,0.05), rgba(6,182,212,0.05));
+  opacity: 0; transition: opacity 0.2s;
+}
+.upload-zone:hover::before, .upload-zone.dragover::before { opacity: 1; }
+.upload-zone.dragover { border-color: var(--accent); }
+.upload-icon { font-size: 48px; margin-bottom: 16px; }
+.upload-text { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.upload-hint { font-size: 13px; color: var(--text2); }
+#fileInput { display: none; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 24px;
+  border: none; border-radius: var(--radius);
+  font-family: var(--sans); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+  text-decoration: none; width: 100%; margin-top: 12px;
+  letter-spacing: 0.01em;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  box-shadow: 0 4px 20px rgba(59,130,246,0.3);
+}
+.btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 10px rgba(59,130,246,0.2); }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-success {
+  background: linear-gradient(135deg, var(--success), #059669);
+  color: white;
+  box-shadow: 0 4px 20px rgba(16,185,129,0.3);
+}
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), #dc2626);
+  color: white;
+}
+.btn-sm { padding: 8px 16px; font-size: 13px; margin-top: 0; width: auto; }
+
+/* ─── PROGRESS ─── */
+.progress-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-top: 20px;
+}
+.progress-label { font-size: 12px; color: var(--text2); font-family: var(--mono); margin-bottom: 10px; }
+.progress-bar { height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 3px; transition: width 0.3s; width: 0%;
+}
+.progress-text { font-size: 13px; color: var(--text2); margin-top: 8px; }
+
+/* ─── STATS ROW ─── */
+.stats-row { display: flex; gap: 10px; margin-top: 20px; }
+.stat-card {
+  flex: 1; background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 12px; text-align: center;
+}
+.stat-value { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+.stat-label { font-size: 10px; color: var(--text2); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ─── SEARCH SCREEN ─── */
+.search-bar {
+  position: relative; margin-bottom: 16px;
+}
+.search-bar input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px 14px 46px;
+  font-family: var(--sans); font-size: 15px;
+  color: var(--text); outline: none;
+  transition: border-color 0.2s;
+}
+.search-bar input:focus { border-color: var(--accent); }
+.search-bar input::placeholder { color: var(--text3); }
+.search-icon {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  font-size: 18px; color: var(--text3);
+}
+
+.filter-row { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+.filter-chip {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 14px; font-size: 12px;
+  color: var(--text2); cursor: pointer; white-space: nowrap;
+  transition: all 0.2s; font-family: var(--sans);
+}
+.filter-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+.item-list { display: flex; flex-direction: column; gap: 8px; }
+.item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.item-card:active { transform: scale(0.99); }
+.item-card.selected {
+  border-color: var(--accent);
+  background: rgba(59,130,246,0.08);
+}
+.item-card.selected::before {
+  content: '✓';
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px;
+  background: var(--accent); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: white; font-weight: 700;
+}
+.item-code { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.item-name { font-size: 14px; font-weight: 600; line-height: 1.3; padding-right: 30px; }
+.item-meta { display: flex; gap: 12px; margin-top: 8px; }
+.item-badge {
+  font-size: 11px; font-family: var(--mono);
+  background: var(--surface2); border-radius: 4px;
+  padding: 2px 8px; color: var(--text2);
+}
+.item-badge.negative { background: rgba(239,68,68,0.15); color: var(--danger); }
+.item-badge.positive { background: rgba(16,185,129,0.15); color: var(--success); }
+
+.floating-bar {
+  position: sticky; bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 12px;
+  backdrop-filter: blur(12px);
+}
+.selected-count {
+  font-size: 13px; color: var(--text2);
+  flex: 1;
+}
+.selected-count strong { color: var(--accent); font-size: 16px; }
+
+/* ─── COUNT SCREEN ─── */
+.count-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 12px;
+}
+.count-item-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.count-item-code { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.count-item-name { font-size: 15px; font-weight: 700; line-height: 1.3; margin-top: 3px; flex: 1; }
+.count-item-rubro {
+  font-size: 10px; font-family: var(--mono);
+  background: var(--surface2); border-radius: 4px;
+  padding: 3px 8px; color: var(--text3); margin-left: 10px; white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.count-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.count-field { }
+.count-label { font-size: 11px; color: var(--text2); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.count-value {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.count-input-wrap { position: relative; }
+.count-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 20px; font-weight: 700;
+  color: var(--text); outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.count-input:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+.diff-field { margin-bottom: 12px; }
+.diff-value {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 20px; font-weight: 700;
+  text-align: center;
+}
+.diff-value.ok { background: rgba(16,185,129,0.15); color: var(--success); }
+.diff-value.warn { background: rgba(239,68,68,0.15); color: var(--danger); }
+.diff-value.zero { background: var(--surface2); color: var(--text3); }
+
+.comment-area {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: var(--sans); font-size: 14px;
+  color: var(--text); outline: none; resize: none;
+  min-height: 70px;
+  transition: border-color 0.2s;
+}
+.comment-area:focus { border-color: var(--accent); }
+.comment-area::placeholder { color: var(--text3); }
+
+/* ─── REPORT SCREEN ─── */
+.report-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px; margin-bottom: 20px;
+}
+.report-title { font-size: 13px; color: var(--text2); font-family: var(--mono); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.08em; }
+.report-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.report-stat { text-align: center; }
+.report-stat-value { font-size: 24px; font-weight: 700; font-family: var(--mono); }
+.report-stat-label { font-size: 10px; color: var(--text2); margin-top: 3px; text-transform: uppercase; }
+
+.report-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.report-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.report-card-name { font-size: 13px; font-weight: 600; flex: 1; }
+.report-card-diff {
+  font-family: var(--mono); font-size: 14px; font-weight: 700;
+  padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+}
+.report-card-diff.ok { background: rgba(16,185,129,0.15); color: var(--success); }
+.report-card-diff.warn { background: rgba(239,68,68,0.15); color: var(--danger); }
+.report-card-diff.zero { background: var(--surface2); color: var(--text3); }
+.report-card-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); font-family: var(--mono); }
+.report-card-comment { font-size: 12px; color: var(--text3); font-style: italic; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 10px 20px;
+  font-size: 14px; color: var(--text);
+  opacity: 0; transition: opacity 0.3s;
+  z-index: 1000; white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.show { opacity: 1; }
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--text3);
+}
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty-text { font-size: 15px; }
+
+/* ─── SPINNER ─── */
+.spinner-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10,15,30,0.85);
+  display: none; align-items: center; justify-content: center;
+  z-index: 500; flex-direction: column; gap: 16px;
+}
+.spinner-overlay.show { display: flex; }
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--surface3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-text { font-size: 14px; color: var(--text2); }
+
+/* ─── SECTION DIVIDER ─── */
+.section-label {
+  font-size: 11px; font-family: var(--mono);
+  color: var(--text3); text-transform: uppercase;
+  letter-spacing: 0.08em; margin: 20px 0 10px;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.3s ease forwards; }
+
+/* Counters badge */
+.badge {
+  display: inline-block; background: var(--danger);
+  border-radius: 10px; font-size: 11px; font-weight: 700;
+  padding: 1px 7px; color: white; font-family: var(--mono);
+  vertical-align: middle;
+}
+</style>
+</head>
+<body>
+
+<!-- SPINNER -->
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+  <div class="spinner-text" id="spinnerText">Procesando PDF...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1: INICIO / CARGA DE PDF
+════════════════════════════════════════════ -->
+<div class="screen active" id="screen-upload">
+  <div class="header">
+    <div class="header-logo">📦</div>
+    <div>
+      <div class="header-title">Control de Stock</div>
+      <div class="header-sub">LEGION S.A. — Depósito Principal</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="hero-section fade-up">
+      <div class="hero-icon">📋</div>
+      <div class="hero-title">Inventario Digital</div>
+      <div class="hero-subtitle">Cargá el informe de saldos de tu sistema contable para comenzar el control físico.</div>
+    </div>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text">Subir informe PDF</div>
+      <div class="upload-hint">Tocá aquí o arrastrá el archivo</div>
+      <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(event)">
+    </div>
+
+    <div class="progress-card" id="progressCard" style="display:none">
+      <div class="progress-label">PROCESANDO INFORME</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">Leyendo archivo...</div>
+    </div>
+
+    <div id="uploadedInfo" style="display:none">
+      <div class="stats-row fade-up">
+        <div class="stat-card">
+          <div class="stat-value" id="statItems">0</div>
+          <div class="stat-label">Artículos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statRubros">0</div>
+          <div class="stat-label">Rubros</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statDate">—</div>
+          <div class="stat-label">Fecha</div>
+        </div>
+      </div>
+      <button class="btn btn-primary fade-up" onclick="goToSearch()" style="margin-top:20px">
+        ✅ Ir a Selección de Materiales
+      </button>
+      <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="margin-top:8px">
+        🔄 Cargar otro PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2: SELECCIÓN DE MATERIALES
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-search">
+  <div class="header">
+    <button class="header-back" onclick="goToScreen('screen-upload')">‹</button>
+    <div>
+      <div class="header-title">Seleccionar Materiales</div>
+      <div class="header-sub" id="searchSubtitle">0 artículos cargados</div>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:0">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar por nombre o código..." oninput="filterItems()">
+    </div>
+    <div class="filter-row" id="filterRow"></div>
+    <div class="item-list" id="itemList"></div>
+    <div style="height:80px"></div>
+  </div>
+
+  <div class="floating-bar">
+    <div class="selected-count">
+      <strong id="selectedCountNum">0</strong> seleccionados
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="goToCount()" id="btnIrContar" disabled>
+      Contar →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3: CONTEO
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-count">
+  <div class="header">
+    <button class="header-back" onclick="goToScreen('screen-search')">‹</button>
+    <div>
+      <div class="header-title">Conteo Físico</div>
+      <div class="header-sub" id="countSubtitle">0 materiales a controlar</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-sm btn-secondary" onclick="addMoreItems()" title="Agregar más">+ Items</button>
+    </div>
+  </div>
+
+  <div class="content" id="countContent" style="padding-bottom:100px">
+    <!-- generado dinámicamente -->
+  </div>
+
+  <div class="floating-bar">
+    <div class="selected-count">
+      <span style="color:var(--text2);font-size:13px">Completados: <strong id="completedCount" style="color:var(--success)">0</strong></span>
+    </div>
+    <button class="btn btn-success btn-sm" onclick="goToReport()">
+      Ver Reporte →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 4: REPORTE
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-report">
+  <div class="header">
+    <button class="header-back" onclick="goToScreen('screen-count')">‹</button>
+    <div>
+      <div class="header-title">Reporte de Control</div>
+      <div class="header-sub" id="reportDate">—</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="report-summary">
+      <div class="report-title">📊 Resumen del Control</div>
+      <div class="report-stats">
+        <div class="report-stat">
+          <div class="report-stat-value" id="repTotal" style="color:var(--accent)">0</div>
+          <div class="report-stat-label">Total</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-value" id="repOk" style="color:var(--success)">0</div>
+          <div class="report-stat-label">Sin Dif.</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-value" id="repDiff" style="color:var(--danger)">0</div>
+          <div class="report-stat-label">Con Dif.</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-success" onclick="exportExcel()">
+      📥 Exportar a Excel
+    </button>
+    <button class="btn btn-secondary" onclick="goToSearch()" style="margin-top:8px">
+      ➕ Controlar más artículos
+    </button>
+    <button class="btn btn-secondary" onclick="resetAll()" style="margin-top:8px; color:var(--danger);">
+      🗑 Nuevo control (limpiar todo)
+    </button>
+
+    <div class="section-label">DETALLE POR ARTÍCULO</div>
+    <div class="report-list" id="reportList"></div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════
+let allItems = [];
+let selectedIds = new Set();
+let countData = {};   // { id: { counted, comment } }
+let currentFilter = 'Todos';
+let pdfDate = '—';
+
+// ═══════════════════════════════════════════
+// UTILIDADES
+// ═══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goToScreen(id) { showScreen(id); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function showSpinner(text) {
+  document.getElementById('spinnerText').textContent = text || 'Procesando...';
+  document.getElementById('spinner').classList.add('show');
+}
+function hideSpinner() { document.getElementById('spinner').classList.remove('show'); }
+
+function fmtNum(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 3 }).format(n);
+}
+
+function setProgress(pct, text) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text;
+}
+
+// ═══════════════════════════════════════════
+// PARSEO DE PDF
+// ═══════════════════════════════════════════
+async function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  await processPDF(file);
+}
+
+// Drag & drop
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') processPDF(file);
+  else showToast('⚠️ Solo se aceptan archivos PDF');
+});
+
+async function processPDF(file) {
+  document.getElementById('progressCard').style.display = 'block';
+  document.getElementById('uploadedInfo').style.display = 'none';
+  setProgress(5, 'Leyendo archivo PDF...');
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    setProgress(15, 'Extrayendo texto...');
+
+    // Usar PDF.js desde CDN
+    const pdfjsLib = await loadPdfJs();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    setProgress(25, `PDF cargado: ${pdf.numPages} páginas`);
+
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map(item => item.str).join(' ');
+      fullText += pageText + '\n';
+      setProgress(25 + Math.round((i / pdf.numPages) * 50), `Procesando página ${i} de ${pdf.numPages}...`);
+    }
+
+    setProgress(80, 'Analizando datos...');
+    const items = parseStockText(fullText);
+
+    if (items.length === 0) {
+      showToast('⚠️ No se encontraron artículos en el PDF');
+      document.getElementById('progressCard').style.display = 'none';
+      return;
+    }
+
+    allItems = items;
+    selectedIds = new Set();
+    countData = {};
+
+    // Detectar fecha del informe
+    const dateMatch = fullText.match(/Fecha\s+(\d{2}\/\d{2}\/\d{4})/);
+    pdfDate = dateMatch ? dateMatch[1] : new Date().toLocaleDateString('es-AR');
+
+    setProgress(100, `✅ ${items.length} artículos encontrados`);
+
+    document.getElementById('statItems').textContent = items.length;
+    const rubros = new Set(items.map(i => i.rubro).filter(Boolean));
+    document.getElementById('statRubros').textContent = rubros.size;
+    document.getElementById('statDate').textContent = pdfDate.split('/')[0] + '/' + pdfDate.split('/')[1];
+
+    setTimeout(() => {
+      document.getElementById('progressCard').style.display = 'none';
+      document.getElementById('uploadedInfo').style.display = 'block';
+    }, 600);
+
+  } catch (err) {
+    console.error(err);
+    setProgress(0, '❌ Error al procesar el PDF');
+    showToast('❌ Error al leer el PDF: ' + err.message);
+  }
+}
+
+let pdfJsLoaded = null;
+function loadPdfJs() {
+  if (pdfJsLoaded) return pdfJsLoaded;
+  pdfJsLoaded = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return pdfJsLoaded;
+}
+
+// ─── PARSEO INTELIGENTE DEL TEXTO DEL PDF ───
+function parseStockText(text) {
+  const items = [];
+  const seen = new Set();
+
+  // Limpiar y normalizar
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const fullClean = lines.join(' ');
+
+  // Regex principal: busca códigos de artículo (6 dígitos) seguidos de descripción y números
+  // Patrón del informe Legion: CODIGO DESCRIPCION ... saldo precioUnit
+  const itemRegex = /\b(9\d{5})\s+([A-ZÁÉÍÓÚÑÜ][^0-9]{5,80?}?)\s+(\d+)\s+([\d,\.]+)\s+([\d,\.]+)\s+([\d,\.,\-]+)\s+(?:([A-ZÁÉÍÓÚÑÜ\/ ]{3,25})\s+)?([\d,\.]+)/g;
+
+  // Estrategia alternativa: parsear token por token
+  // El formato del informe es:
+  // [codigo] [descripcion...] [lote] [unidad] [entrada] [salida] [saldo] [rubro?] [precUnit] [precio1]
+
+  // Primero extraemos bloques por código de artículo
+  const codePattern = /\b(9\d{5})\b/g;
+  let match;
+  const positions = [];
+  while ((match = codePattern.exec(fullClean)) !== null) {
+    positions.push({ code: match[1], pos: match.index });
+  }
+
+  for (let i = 0; i < positions.length; i++) {
+    const start = positions[i].pos;
+    const end = i + 1 < positions.length ? positions[i + 1].pos : fullClean.length;
+    const segment = fullClean.substring(start, Math.min(start + 400, end));
+    const code = positions[i].code;
+
+    if (seen.has(code)) continue;
+
+    const item = parseSegment(code, segment);
+    if (item) {
+      seen.add(code);
+      items.push(item);
+    }
+  }
+
+  return items;
+}
+
+function parseSegment(code, segment) {
+  // Remover el código del inicio
+  let rest = segment.substring(code.length).trim();
+
+  // Extraer descripción: texto hasta primer número largo
+  const descMatch = rest.match(/^([A-ZÁÉÍÓÚÑÜ°ºª"\/\-\.\(\)\s&]{3,100?}?)(?=\s+\d)/);
+  let desc = descMatch ? descMatch[1].trim() : '';
+  desc = desc.replace(/\s+/g, ' ').trim();
+
+  if (!desc || desc.length < 3) return null;
+
+  // Buscar números en el segmento (entrada, salida, saldo, precio)
+  const numPattern = /[\-]?[\d]{1,12}[,\.][\d]{0,3}/g;
+  const nums = [];
+  let nm;
+  while ((nm = numPattern.exec(rest)) !== null) {
+    const val = parseArgNum(nm[0]);
+    if (!isNaN(val)) nums.push(val);
+  }
+
+  // También buscar enteros solos grandes
+  const intPattern = /\b(\d{1,7})\b/g;
+  // (ya incluidos en el patrón anterior para enteros con coma/punto)
+
+  // Intentar identificar saldo: en el informe, el patrón es Entrada Salida Saldo
+  // Los primeros 3 números coherentes deberían ser Entrada, Salida, Saldo
+  let entrada = null, salida = null, saldo = null, precUnit = null, rubro = '';
+
+  // Buscar patron: número número número [RUBRO?] número número
+  const lineNums = rest.match(/[\d,\.]+/g) || [];
+  const parsedNums = lineNums.map(n => parseArgNum(n)).filter(n => !isNaN(n) && n >= 0);
+
+  // Heurística: los primeros valores son entrada/salida/saldo
+  if (parsedNums.length >= 3) {
+    entrada = parsedNums[0];
+    salida  = parsedNums[1];
+    // El saldo puede ser negativo: buscar explícitamente
+    const saldoMatch = rest.match(/[\-]?[\d,]+[,\.][\d]{3}/);
+    if (saldoMatch) {
+      // Buscar después de 3er número
+      const after3 = rest.replace(/[\d,\.]+/, '').replace(/[\d,\.]+/, '').replace(/[\d,\.]+/, '');
+      const s3 = after3.match(/\-?[\d,\.]+/);
+      if (s3) saldo = parseArgNum(s3[0]);
+    }
+    if (saldo === null) saldo = parsedNums[2];
+
+    // Precio unitario suele ser un número grande con decimales
+    if (parsedNums.length >= 5) {
+      precUnit = parsedNums[parsedNums.length - 2];
+    }
+  }
+
+  // Buscar rubro: texto en mayúsculas después de los primeros números
+  const rubroMatch = rest.match(/\b([A-ZÁÉÍÓÚÑÜ]{3,}(?:\s+[A-ZÁÉÍÓÚÑÜ]{1,})?)\b(?=\s+[\d,\.]+)/g);
+  if (rubroMatch) {
+    const candidates = rubroMatch.filter(r =>
+      !['MTS', 'KG', 'ML', 'M2', 'M3', 'MM', 'CM', 'LTS', 'UNIDAD', 'FALSE', 'AND', 'OR'].includes(r.trim())
+    );
+    if (candidates.length > 0) rubro = candidates[candidates.length - 1].trim();
+  }
+
+  // Validación mínima
+  if (saldo === null && parsedNums.length > 0) saldo = 0;
+
+  return {
+    id: code,
+    code,
+    name: desc,
+    rubro: rubro || '',
+    entrada: entrada || 0,
+    salida: salida || 0,
+    saldo: saldo !== null ? saldo : 0,
+    precUnit: precUnit || 0,
+    unit: detectUnit(rest),
+  };
+}
+
+function detectUnit(text) {
+  if (/\bKG\b/i.test(text)) return 'KG';
+  if (/\bML\b/i.test(text)) return 'ML';
+  if (/\bM2\b/i.test(text)) return 'M2';
+  if (/\bM3\b/i.test(text)) return 'M3';
+  if (/\bMTS\b/i.test(text)) return 'MTS';
+  return 'UN';
+}
+
+function parseArgNum(str) {
+  if (!str) return NaN;
+  // Formato argentino: 1.234.567,89 o 1,234.56 etc
+  let s = String(str).trim().replace(/\s/g, '');
+  // Si tiene punto como miles y coma como decimal
+  if (/^\-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (/^\-?\d+(,\d{3})*(\.\d+)?$/.test(s)) {
+    s = s.replace(/,/g, '');
+  } else {
+    s = s.replace(/,/g, '.');
+  }
+  return parseFloat(s);
+}
+
+// ═══════════════════════════════════════════
+// NAVEGACIÓN: BÚSQUEDA
+// ═══════════════════════════════════════════
+function goToSearch() {
+  if (allItems.length === 0) {
+    showToast('⚠️ Primero cargá un PDF de stock');
+    return;
+  }
+  buildFilters();
+  renderItems();
+  document.getElementById('searchSubtitle').textContent = `${allItems.length} artículos disponibles`;
+  document.getElementById('searchInput').value = '';
+  showScreen('screen-search');
+}
+
+function buildFilters() {
+  const rubros = ['Todos', ...new Set(allItems.map(i => i.rubro).filter(Boolean))].sort();
+  const row = document.getElementById('filterRow');
+  row.innerHTML = '';
+  rubros.slice(0, 20).forEach(r => {
+    const chip = document.createElement('div');
+    chip.className = 'filter-chip' + (r === currentFilter ? ' active' : '');
+    chip.textContent = r;
+    chip.onclick = () => { currentFilter = r; buildFilters(); filterItems(); };
+    row.appendChild(chip);
+  });
+}
+
+function filterItems() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const list = document.getElementById('itemList');
+  list.innerHTML = '';
+
+  const filtered = allItems.filter(item => {
+    const matchSearch = !q || item.name.toLowerCase().includes(q) || item.code.includes(q);
+    const matchFilter = currentFilter === 'Todos' || item.rubro === currentFilter;
+    return matchSearch && matchFilter;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔎</div><div class="empty-text">Sin resultados</div></div>';
+    return;
+  }
+
+  filtered.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'item-card' + (selectedIds.has(item.id) ? ' selected' : '');
+    card.onclick = () => toggleItem(item.id, card);
+    card.innerHTML = `
+      <div class="item-code">${item.code}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-meta">
+        <span class="item-badge ${item.saldo < 0 ? 'negative' : item.saldo > 0 ? 'positive' : ''}">
+          Saldo: ${fmtNum(item.saldo)} ${item.unit}
+        </span>
+        ${item.rubro ? `<span class="item-badge">${item.rubro}</span>` : ''}
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  updateSelectedCount();
+}
+
+function renderItems() { filterItems(); }
+
+function toggleItem(id, cardEl) {
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    cardEl.classList.remove('selected');
+  } else {
+    selectedIds.add(id);
+    cardEl.classList.add('selected');
+  }
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const n = selectedIds.size;
+  document.getElementById('selectedCountNum').textContent = n;
+  document.getElementById('btnIrContar').disabled = n === 0;
+}
+
+// ═══════════════════════════════════════════
+// NAVEGACIÓN: CONTEO
+// ═══════════════════════════════════════════
+function goToCount() {
+  if (selectedIds.size === 0) {
+    showToast('⚠️ Seleccioná al menos un artículo');
+    return;
+  }
+  buildCountScreen();
+  document.getElementById('countSubtitle').textContent = `${selectedIds.size} materiales`;
+  showScreen('screen-count');
+}
+
+function addMoreItems() {
+  goToSearch();
+}
+
+function buildCountScreen() {
+  const content = document.getElementById('countContent');
+  content.innerHTML = '';
+
+  const items = allItems.filter(i => selectedIds.has(i.id));
+  document.getElementById('countSubtitle').textContent = `${items.length} materiales`;
+
+  items.forEach(item => {
+    if (!countData[item.id]) countData[item.id] = { counted: '', comment: '' };
+    const d = countData[item.id];
+
+    const card = document.createElement('div');
+    card.className = 'count-item';
+    card.id = 'count-card-' + item.id;
+    card.innerHTML = `
+      <div class="count-item-header">
+        <div>
+          <div class="count-item-code">${item.code}</div>
+          <div class="count-item-name">${item.name}</div>
+        </div>
+        ${item.rubro ? `<div class="count-item-rubro">${item.rubro}</div>` : ''}
+      </div>
+      <div class="count-grid">
+        <div class="count-field">
+          <div class="count-label">📋 Sistema (${item.unit})</div>
+          <div class="count-value">${fmtNum(item.saldo)}</div>
+        </div>
+        <div class="count-field">
+          <div class="count-label">✋ Contado (${item.unit})</div>
+          <div class="count-input-wrap">
+            <input
+              type="number"
+              class="count-input"
+              id="input-${item.id}"
+              placeholder="0"
+              value="${d.counted}"
+              step="any"
+              inputmode="decimal"
+              oninput="updateDiff('${item.id}')"
+            >
+          </div>
+        </div>
+      </div>
+      <div class="diff-field">
+        <div class="count-label">⚖️ Diferencia</div>
+        <div class="diff-value zero" id="diff-${item.id}">—</div>
+      </div>
+      <div>
+        <div class="count-label">💬 Comentario / Motivo</div>
+        <textarea
+          class="comment-area"
+          id="comment-${item.id}"
+          placeholder="Ej: Faltante por rotura, mercadería en tránsito..."
+          oninput="saveComment('${item.id}')"
+        >${d.comment}</textarea>
+      </div>
+    `;
+    content.appendChild(card);
+
+    // Restaurar diff si ya tenía dato
+    if (d.counted !== '') updateDiff(item.id);
+  });
+
+  updateCompletedCount();
+}
+
+function updateDiff(itemId) {
+  const input = document.getElementById('input-' + itemId);
+  const diffEl = document.getElementById('diff-' + itemId);
+  const item = allItems.find(i => i.id === itemId);
+
+  const counted = parseFloat(input.value);
+  countData[itemId].counted = input.value;
+
+  if (isNaN(counted) || input.value === '') {
+    diffEl.textContent = '—';
+    diffEl.className = 'diff-value zero';
+  } else {
+    const diff = counted - item.saldo;
+    diffEl.textContent = (diff >= 0 ? '+' : '') + fmtNum(diff);
+    if (diff === 0) { diffEl.className = 'diff-value ok'; }
+    else if (Math.abs(diff) > 0) { diffEl.className = 'diff-value warn'; }
+  }
+  updateCompletedCount();
+}
+
+function saveComment(itemId) {
+  const ta = document.getElementById('comment-' + itemId);
+  countData[itemId].comment = ta.value;
+}
+
+function updateCompletedCount() {
+  const items = allItems.filter(i => selectedIds.has(i.id));
+  const done = items.filter(i => countData[i.id] && countData[i.id].counted !== '').length;
+  document.getElementById('completedCount').textContent = done + '/' + items.length;
+}
+
+// ═══════════════════════════════════════════
+// NAVEGACIÓN: REPORTE
+// ═══════════════════════════════════════════
+function goToReport() {
+  buildReport();
+  showScreen('screen-report');
+}
+
+function buildReport() {
+  const now = new Date();
+  document.getElementById('reportDate').textContent =
+    now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+  const items = allItems.filter(i => selectedIds.has(i.id));
+  let ok = 0, diff = 0;
+
+  const list = document.getElementById('reportList');
+  list.innerHTML = '';
+
+  items.forEach(item => {
+    const d = countData[item.id] || {};
+    const counted = parseFloat(d.counted);
+    const hasCounted = !isNaN(counted);
+    const difference = hasCounted ? counted - item.saldo : null;
+
+    if (hasCounted) {
+      if (difference === 0) ok++;
+      else diff++;
+    }
+
+    let diffClass = 'zero', diffText = 'Sin contar';
+    if (hasCounted) {
+      if (difference === 0) { diffClass = 'ok'; diffText = '±0'; }
+      else { diffClass = 'warn'; diffText = (difference > 0 ? '+' : '') + fmtNum(difference); }
+    }
+
+    const card = document.createElement('div');
+    card.className = 'report-card';
+    card.innerHTML = `
+      <div class="report-card-header">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${item.code}</div>
+          <div class="report-card-name">${item.name}</div>
+        </div>
+        <div class="report-card-diff ${diffClass}">${diffText}</div>
+      </div>
+      <div class="report-card-row">
+        <span>Sistema: ${fmtNum(item.saldo)} ${item.unit}</span>
+        <span>Contado: ${hasCounted ? fmtNum(counted) + ' ' + item.unit : '—'}</span>
+      </div>
+      ${d.comment ? `<div class="report-card-comment">💬 ${d.comment}</div>` : ''}
+    `;
+    list.appendChild(card);
+  });
+
+  document.getElementById('repTotal').textContent = items.length;
+  document.getElementById('repOk').textContent = ok;
+  document.getElementById('repDiff').textContent = diff;
+}
+
+// ═══════════════════════════════════════════
+// EXPORTAR EXCEL
+// ═══════════════════════════════════════════
+function exportExcel() {
+  const items = allItems.filter(i => selectedIds.has(i.id));
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+
+  const rows = [
+    ['LEGION S.A. — Control de Stock Físico'],
+    [`Fecha del control: ${dateStr}   |   PDF cargado fecha: ${pdfDate}`],
+    [],
+    ['Código', 'Descripción', 'Rubro', 'Unidad', 'Saldo Sistema', 'Contado', 'Diferencia', 'Comentario'],
+  ];
+
+  items.forEach(item => {
+    const d = countData[item.id] || {};
+    const counted = parseFloat(d.counted);
+    const hasCounted = !isNaN(counted);
+    const diff = hasCounted ? counted - item.saldo : '';
+
+    rows.push([
+      item.code,
+      item.name,
+      item.rubro || '',
+      item.unit,
+      item.saldo,
+      hasCounted ? counted : '',
+      diff,
+      d.comment || '',
+    ]);
+  });
+
+  // Hoja resumen
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Ancho de columnas
+  ws['!cols'] = [
+    { wch: 10 }, { wch: 50 }, { wch: 18 }, { wch: 8 },
+    { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 40 },
+  ];
+
+  // Merge título
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Control Stock');
+
+  // Segunda hoja: solo diferencias
+  const diffRows = [
+    ['ARTÍCULOS CON DIFERENCIA'],
+    ['Código', 'Descripción', 'Rubro', 'Unidad', 'Saldo Sistema', 'Contado', 'Diferencia', 'Comentario'],
+  ];
+  items.forEach(item => {
+    const d = countData[item.id] || {};
+    const counted = parseFloat(d.counted);
+    const hasCounted = !isNaN(counted);
+    const diff = hasCounted ? counted - item.saldo : null;
+    if (hasCounted && diff !== 0) {
+      diffRows.push([item.code, item.name, item.rubro || '', item.unit, item.saldo, counted, diff, d.comment || '']);
+    }
+  });
+
+  if (diffRows.length > 2) {
+    const wsDiff = XLSX.utils.aoa_to_sheet(diffRows);
+    wsDiff['!cols'] = ws['!cols'];
+    XLSX.utils.book_append_sheet(wb, wsDiff, 'Solo Diferencias');
+  }
+
+  const filename = `control_stock_${now.toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, filename);
+  showToast('✅ Excel exportado correctamente');
+}
+
+// ═══════════════════════════════════════════
+// RESET
+// ═══════════════════════════════════════════
+function resetAll() {
+  if (!confirm('¿Limpiar todos los datos y comenzar un nuevo control?')) return;
+  selectedIds = new Set();
+  countData = {};
+  showScreen('screen-upload');
+  showToast('🔄 Control reiniciado');
+}
+
+// ═══════════════════════════════════════════
+// PWA: SERVICE WORKER
+// ═══════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// Init
+filterItems();
+</script>
+</body>
+</html>
