@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stock Legion">
+<title>Control de Stock — Legion S.A.</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0a0f1e;--surface:#111827;--surface2:#1a2235;--surface3:#243048;--border:rgba(99,120,180,0.18);--accent:#3b82f6;--accent2:#06b6d4;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--mono:'JetBrains Mono',monospace;--sans:'Sora',sans-serif;--radius:14px;--radius-sm:8px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100}
+.header-logo{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.header-title{font-size:15px;font-weight:700}
+.header-sub{font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:1px}
+.header-back{background:none;border:none;color:var(--accent);font-size:26px;cursor:pointer;padding:4px 8px 4px 0;display:flex;align-items:center}
+.header-actions{margin-left:auto;display:flex;gap:8px}
+.content{flex:1;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.hero-section{text-align:center;padding:40px 0 30px}
+.hero-icon{width:90px;height:90px;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(6,182,212,0.2));border:2px solid rgba(59,130,246,0.3);border-radius:24px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 0 40px rgba(59,130,246,0.15)}
+.hero-title{font-size:26px;font-weight:700;margin-bottom:8px}
+.hero-subtitle{color:var(--text2);font-size:14px;line-height:1.6}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border:none;border-radius:var(--radius);font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;width:100%;margin-top:12px;letter-spacing:0.01em}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;box-shadow:0 4px 20px rgba(59,130,246,0.3)}
+.btn-primary:active{transform:scale(0.98)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-success{background:linear-gradient(135deg,var(--success),#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.3)}
+.btn-sm{padding:8px 16px;font-size:13px;margin-top:0;width:auto}
+.stats-row{display:flex;gap:10px;margin-top:20px}
+.stat-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 12px;text-align:center}
+.stat-value{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--accent)}
+.stat-label{font-size:10px;color:var(--text2);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em}
+.search-bar{position:relative;margin-bottom:16px}
+.search-bar input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px 14px 46px;font-family:var(--sans);font-size:15px;color:var(--text);outline:none;transition:border-color 0.2s}
+.search-bar input:focus{border-color:var(--accent)}
+.search-bar input::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--text3)}
+.filter-row{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.filter-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all 0.2s;font-family:var(--sans)}
+.filter-chip.active{background:var(--accent);border-color:var(--accent);color:white}
+.item-list{display:flex;flex-direction:column;gap:8px}
+.item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden}
+.item-card:active{transform:scale(0.99)}
+.item-card.selected{border-color:var(--accent);background:rgba(59,130,246,0.08)}
+.item-card.selected::after{content:'✓';position:absolute;right:14px;top:50%;transform:translateY(-50%);width:24px;height:24px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:white;font-weight:700;line-height:24px;text-align:center}
+.item-code{font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:4px}
+.item-name{font-size:14px;font-weight:600;line-height:1.3;padding-right:34px}
+.item-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.item-badge{font-size:11px;font-family:var(--mono);background:var(--surface2);border-radius:4px;padding:2px 8px;color:var(--text2)}
+.item-badge.neg{background:rgba(239,68,68,0.15);color:var(--danger)}
+.item-badge.pos{background:rgba(16,185,129,0.15);color:var(--success)}
+.floating-bar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px}
+.selected-count{font-size:13px;color:var(--text2);flex:1}
+.selected-count strong{color:var(--accent);font-size:16px}
+.count-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px}
+.count-item-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.count-item-code{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.count-item-name{font-size:15px;font-weight:700;line-height:1.3;margin-top:3px;flex:1}
+.count-item-rubro{font-size:10px;font-family:var(--mono);background:var(--surface2);border-radius:4px;padding:3px 8px;color:var(--text3);margin-left:10px;white-space:nowrap;flex-shrink:0}
+.count-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.count-label{font-size:11px;color:var(--text2);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
+.count-value{background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text)}
+.count-input{width:100%;background:var(--surface2);border:2px solid var(--accent);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);outline:none;-webkit-appearance:none}
+.count-input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(59,130,246,0.15)}
+.diff-field{margin-bottom:12px}
+.diff-value{padding:12px 14px;border-radius:var(--radius-sm);font-family:var(--mono);font-size:20px;font-weight:700;text-align:center}
+.diff-value.ok{background:rgba(16,185,129,0.15);color:var(--success)}
+.diff-value.warn{background:rgba(239,68,68,0.15);color:var(--danger)}
+.diff-value.zero{background:var(--surface2);color:var(--text3)}
+.comment-area{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--sans);font-size:14px;color:var(--text);outline:none;resize:none;min-height:70px;transition:border-color 0.2s}
+.comment-area:focus{border-color:var(--accent)}
+.comment-area::placeholder{color:var(--text3)}
+.report-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.report-title{font-size:13px;color:var(--text2);font-family:var(--mono);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.08em}
+.report-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.report-stat{text-align:center}
+.report-stat-value{font-size:24px;font-weight:700;font-family:var(--mono)}
+.report-stat-label{font-size:10px;color:var(--text2);margin-top:3px;text-transform:uppercase}
+.report-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.report-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.report-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.report-card-name{font-size:13px;font-weight:600;flex:1}
+.report-card-diff{font-family:var(--mono);font-size:14px;font-weight:700;padding:3px 10px;border-radius:6px;margin-left:10px}
+.report-card-diff.ok{background:rgba(16,185,129,0.15);color:var(--success)}
+.report-card-diff.warn{background:rgba(239,68,68,0.15);color:var(--danger)}
+.report-card-diff.zero{background:var(--surface2);color:var(--text3)}
+.report-card-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);font-family:var(--mono)}
+.report-card-comment{font-size:12px;color:var(--text3);font-style:italic;margin-top:6px;border-top:1px solid var(--border);padding-top:6px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:10px 20px;font-size:14px;color:var(--text);opacity:0;transition:opacity 0.3s;z-index:1000;white-space:nowrap;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.toast.show{opacity:1}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5}
+.empty-text{font-size:15px}
+.section-label{font-size:11px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin:20px 0 10px}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:12px;color:var(--text2)}
+.info-val{font-size:13px;font-weight:600;font-family:var(--mono)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.3s ease forwards}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- PANTALLA 1: INICIO -->
+<div class="screen active" id="screen-home">
+  <div class="header">
+    <div class="header-logo">📦</div>
+    <div>
+      <div class="header-title">Control de Stock</div>
+      <div class="header-sub">LEGION S.A. — 18/05/2026</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="hero-section fade-up">
+      <div class="hero-icon">🏭</div>
+      <div class="hero-title">Depósito Principal</div>
+      <div class="hero-subtitle">Informe de saldos cargado y listo para usar.<br>Seleccioná los materiales que vas a controlar hoy.</div>
+    </div>
+    <div class="stats-row fade-up">
+      <div class="stat-card">
+        <div class="stat-value" id="statItems">740</div>
+        <div class="stat-label">Artículos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statRubros">—</div>
+        <div class="stat-label">Rubros</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">18/05</div>
+        <div class="stat-label">Fecha</div>
+      </div>
+    </div>
+    <button class="btn btn-primary fade-up" onclick="goToSearch()" style="margin-top:24px">
+      ✅ Seleccionar Materiales
+    </button>
+    <div id="resumeSection" style="display:none">
+      <button class="btn btn-secondary" onclick="goToCount()" style="margin-top:8px">
+        📋 Continuar conteo en curso
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA 2: BÚSQUEDA -->
+<div class="screen" id="screen-search">
+  <div class="header">
+    <button class="header-back" onclick="goToScreen('screen-home')">‹</button>
+    <div>
+      <div class="header-title">Seleccionar Materiales</div>
+      <div class="header-sub" id="searchSubtitle">740 artículos</div>
+    </div>
+  </div>
+  <div class="content" style="padding-bottom:0">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar por nombre o código..." oninput="filterItems()">
+    </div>
+    <div class="filter-row" id="filterRow"></div>
+    <div class="item-list" id="itemList"></div>
+    <div style="height:80px"></div>
+  </div>
+  <div class="floating-bar">
+    <div class="selected-count"><strong id="selectedCountNum">0</strong> seleccionados</div>
+    <button class="btn btn-primary btn-sm" onclick="goToCount()" id="btnIrContar" disabled>Contar →</button>
+  </div>
+</div>
+
+<!-- PANTALLA 3: CONTEO -->
+<div class="screen" id="screen-count">
+  <div class="header">
+    <button class="header-back" onclick="goToScreen('screen-search')">‹</button>
+    <div>
+      <div class="header-title">Conteo Físico</div>
+      <div class="header-sub" id="countSubtitle">0 materiales</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-sm btn-secondary" onclick="goToScreen('screen-search')">+ Items</button>
+    </div>
+  </div>
+  <div class="content" id="countContent" style="padding-bottom:100px"></div>
+  <div class="floating-bar">
+    <span style="font-size:13px;color:var(--text2)">Completados: <strong id="completedCount" style="color:var(--success)">0/0</strong></span>
+    <button class="btn btn-success btn-sm" onclick="goToReport()">Ver Reporte →</button>
+  </div>
+</div>
+
+<!-- PANTALLA 4: REPORTE -->
+<div class="screen" id="screen-report">
+  <div class="header">
+    <button class="header-back" onclick="goToScreen('screen-count')">‹</button>
+    <div>
+      <div class="header-title">Reporte de Control</div>
+      <div class="header-sub" id="reportDate">—</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="report-summary">
+      <div class="report-title">📊 Resumen del Control</div>
+      <div class="report-stats">
+        <div class="report-stat"><div class="report-stat-value" id="repTotal" style="color:var(--accent)">0</div><div class="report-stat-label">Total</div></div>
+        <div class="report-stat"><div class="report-stat-value" id="repOk" style="color:var(--success)">0</div><div class="report-stat-label">Sin Dif.</div></div>
+        <div class="report-stat"><div class="report-stat-value" id="repDiff" style="color:var(--danger)">0</div><div class="report-stat-label">Con Dif.</div></div>
+      </div>
+    </div>
+    <button class="btn btn-success" onclick="exportExcel()">📥 Exportar a Excel</button>
+    <button class="btn btn-secondary" onclick="goToScreen('screen-search')" style="margin-top:8px">➕ Controlar más artículos</button>
+    <button class="btn btn-secondary" onclick="resetAll()" style="margin-top:8px;color:var(--danger)">🗑 Nuevo control</button>
+    <div class="section-label">DETALLE POR ARTÍCULO</div>
+    <div class="report-list" id="reportList"></div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+
+<script>
+// ── DATOS DEL SISTEMA (18/05/2026) ──────────────────────────
+const ALL_ITEMS = [{"id":"901392","code":"901392","name":"ADHESIVO SIL PUFLEX EXT","saldo":12,"unit":"UN","rubro":""},{"id":"902408","code":"902408","name":"METAL DESPLEGADO 440-20-5 KG","saldo":1,"unit":"UN","rubro":""},{"id":"902939","code":"902939","name":"PEGASO DISCO FLAP","saldo":27,"unit":"UN","rubro":""},{"id":"903017","code":"903017","name":"PEGASO DISCO FLAP","saldo":42,"unit":"UN","rubro":""},{"id":"903018","code":"903018","name":"PEGASO DISCO FLAP","saldo":3,"unit":"UN","rubro":""},{"id":"903026","code":"903026","name":"ADOQUIN PR8Q RECTO (50XM2)","saldo":-2879,"unit":"UN","rubro":""},{"id":"903039","code":"903039","name":"TORNILLO T3 DRYWALL","saldo":-5,"unit":"UN","rubro":""},{"id":"903088","code":"903088","name":"MEGAFACIL AUTOADHES.","saldo":2,"unit":"UN","rubro":""},{"id":"903132","code":"903132","name":"PINCEL OBRA N15 EL GALGO","saldo":4,"unit":"UN","rubro":""},{"id":"903133","code":"903133","name":"PINCEL OBRA N20 EL GALGO","saldo":9,"unit":"UN","rubro":""},{"id":"903134","code":"903134","name":"PINCEL DE OBRA N25 EL GALGO","saldo":0,"unit":"UN","rubro":""},{"id":"903135","code":"903135","name":"PINCEL DE OBRA N30 EL GALGO","saldo":8,"unit":"UN","rubro":""},{"id":"903232","code":"903232","name":"TIRANTE PINO CEP SIN EMB","saldo":5,"unit":"UN","rubro":""},{"id":"903233","code":"903233","name":"ALAMBRE DE PUAS X ROLLO","saldo":0,"unit":"UN","rubro":""},{"id":"903240","code":"903240","name":"THINNER X 1LTS FLEMING","saldo":12,"unit":"UN","rubro":""},{"id":"903241","code":"903241","name":"THINNER X 4LTS FLEMING","saldo":19,"unit":"UN","rubro":""},{"id":"903242","code":"903242","name":"AGUARRAS X 3.900LTS FLEMING","saldo":18,"unit":"UN","rubro":""},{"id":"903243","code":"903243","name":"ESTOPA LIMPIEZA X 300G","saldo":2,"unit":"UN","rubro":""},{"id":"903244","code":"903244","name":"CHAPA SINUSOIDAL POLICARBON ML","saldo":-123.24,"unit":"UN","rubro":""},{"id":"903255","code":"903255","name":"TIGRE CANO CLOACAL","saldo":-167,"unit":"UN","rubro":""},{"id":"903256","code":"903256","name":"TIGRE CANO TBPE 100/10 63X","saldo":0,"unit":"UN","rubro":""},{"id":"903263","code":"903263","name":"CONVERLUX","saldo":0,"unit":"UN","rubro":""},{"id":"903277","code":"903277","name":"CONVERLUX","saldo":9,"unit":"UN","rubro":""},{"id":"903287","code":"903287","name":"ALAMBRE MED RESIST B-1042-T","saldo":5,"unit":"UN","rubro":""},{"id":"903288","code":"903288","name":"METAL DESP GALV PESADO","saldo":0,"unit":"UN","rubro":""},{"id":"903337","code":"903337","name":"TIRANTE DE PINO CEP S/EMB 3X6","saldo":0,"unit":"UN","rubro":""},{"id":"903338","code":"903338","name":"TIRANTE PINO CEP S/EMB 3X8","saldo":1,"unit":"UN","rubro":""},{"id":"903339","code":"903339","name":"TIRANTE DE PINO CEP S/EMB 3X6","saldo":148,"unit":"UN","rubro":""},{"id":"903341","code":"903341","name":"TIRANTE PINO CEP S/EMB 3X8","saldo":35,"unit":"UN","rubro":""},{"id":"903342","code":"903342","name":"TIRANTE PINO CEP 3X6X3.05 M","saldo":0,"unit":"UN","rubro":""},{"id":"903346","code":"903346","name":"TELGOPOR ALTA DENSIDAD 1X1","saldo":100,"unit":"UN","rubro":""},{"id":"903354","code":"903354","name":"REGULADOR GAS ENV","saldo":10,"unit":"UN","rubro":""},{"id":"903367","code":"903367","name":"PLACA COLABORANTE STEEL","saldo":561.2,"unit":"UN","rubro":""},{"id":"903369","code":"903369","name":"CHAPA SINUS GRIS PIZARRA","saldo":0,"unit":"UN","rubro":""},{"id":"903371","code":"903371","name":"TABLA P/DECK 1X3 M2 EUCA","saldo":0,"unit":"UN","rubro":""},{"id":"903380","code":"903380","name":"DURATOP TUBO","saldo":0,"unit":"UN","rubro":""},{"id":"903381","code":"903381","name":"DURATOP TUBO","saldo":0,"unit":"UN","rubro":""},{"id":"903382","code":"903382","name":"DURATOP TUBO","saldo":0,"unit":"UN","rubro":""},{"id":"903383","code":"903383","name":"DUKE CAMARA DE INSPECCION","saldo":0,"unit":"UN","rubro":""},{"id":"903384","code":"903384","name":"CLEMENTE CAMARA SEPTICA","saldo":-1,"unit":"UN","rubro":""},{"id":"903385","code":"903385","name":"DURATOP CODO","saldo":-7,"unit":"UN","rubro":""},{"id":"903386","code":"903386","name":"DURATOP RAMAL SIMPLE","saldo":0,"unit":"UN","rubro":""},{"id":"903387","code":"903387","name":"DURATOP CODO","saldo":-6,"unit":"UN","rubro":""},{"id":"903388","code":"903388","name":"PILETA DE PATIO COMPLETA","saldo":-8,"unit":"UN","rubro":""},{"id":"903389","code":"903389","name":"INTERSECTADORA DE GRASA","saldo":0,"unit":"UN","rubro":""},{"id":"903399","code":"903399","name":"CAMARA GRASERA PVC X","saldo":-4,"unit":"UN","rubro":""},{"id":"903401","code":"903401","name":"CHAPA LISA CORTADA CORTE","saldo":-1604,"unit":"UN","rubro":""},{"id":"903403","code":"903403","name":"T101 NEGRA C/POLIU","saldo":52,"unit":"UN","rubro":""},{"id":"903404","code":"903404","name":"LIMAHOYA","saldo":30,"unit":"UN","rubro":""},{"id":"903405","code":"903405","name":"CUMBRERA GALV","saldo":-2,"unit":"UN","rubro":""},{"id":"903407","code":"903407","name":"MALLA ZARANDA","saldo":0,"unit":"UN","rubro":""},{"id":"901740","code":"901740","name":"EVEL CINTA METRICA RETROBLO","saldo":0,"unit":"UN","rubro":""},{"id":"902269","code":"902269","name":"MOTA CINTA METRICA","saldo":4,"unit":"UN","rubro":""},{"id":"901128","code":"901128","name":"DEWALT AMOLADORA 180MM","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"901161","code":"901161","name":"DEWALT ATORNILLADOR DCF6","saldo":0,"unit":"UN","rubro":""},{"id":"901317","code":"901317","name":"DEWALT AMOLADORA 115MM","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"901602","code":"901602","name":"EINHELL TALADRO PERC 13MM","saldo":0,"unit":"UN","rubro":""},{"id":"901985","code":"901985","name":"EINHELL ATORNILLADOR C/PE","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"901987","code":"901987","name":"EINHELL TALADRO ATORNILLADO","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"901989","code":"901989","name":"EINHELL SIERRA CIRCULAR","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"901990","code":"901990","name":"EINHELL MULTIHERRAMIENTA","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"902002","code":"902002","name":"MAKITA AMOLADORA ANGULAR","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"902295","code":"902295","name":"HORMIGONERA REF","saldo":0,"unit":"UN","rubro":""},{"id":"902534","code":"902534","name":"MAKITA BATERIA 18V 3A","saldo":0,"unit":"UN","rubro":""},{"id":"902535","code":"902535","name":"MAKITA AMOLADORA MT 115M","saldo":0,"unit":"UN","rubro":""},{"id":"902549","code":"902549","name":"MAKITA AMOLADORA INAL 18V","saldo":0,"unit":"UN","rubro":""},{"id":"902832","code":"902832","name":"MAKITA ATORNILLADOR IMPAC","saldo":0,"unit":"UN","rubro":""},{"id":"902849","code":"902849","name":"MAKITA BATERIA LXT BL1860B","saldo":0,"unit":"UN","rubro":""},{"id":"902859","code":"902859","name":"MAKITA BATERIA LXT BL1830B","saldo":0,"unit":"UN","rubro":""},{"id":"903177","code":"903177","name":"DEWALT AMOLADORA ANGULAR","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"903178","code":"903178","name":"DEWALT AMOLADORA ANGULAR","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"903179","code":"903179","name":"DEWALT SIERRA CALADORA","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"903180","code":"903180","name":"DEWALT SIERRA CIRCULAR","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"901285","code":"901285","name":"BALDE DE PLASTICO ALBANIL","saldo":10,"unit":"UN","rubro":""},{"id":"901542","code":"901542","name":"FISCHER PISTOLA P/ESPUMA","saldo":0,"unit":"UN","rubro":""},{"id":"901683","code":"901683","name":"CORTADORA DE CIRCULOS","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"901684","code":"901684","name":"ESPATULA RECORTADA P/UNION","saldo":8,"unit":"UN","rubro":""},{"id":"901746","code":"901746","name":"ESPATULA RECTA BIMATERIAL","saldo":0,"unit":"UN","rubro":""},{"id":"901748","code":"901748","name":"ESPATULA RECTA BIMATERIAL","saldo":0,"unit":"UN","rubro":""},{"id":"901860","code":"901860","name":"FISCHER CLAVADORA A GAS","saldo":0,"unit":"UN","rubro":"HERRAMIE"},{"id":"902676","code":"902676","name":"MOTA GRAPADORA PREMIUM","saldo":4,"unit":"UN","rubro":"HERRAMIE"},{"id":"902807","code":"902807","name":"MOTA GRAPAS N4 8MM X","saldo":-60,"unit":"UN","rubro":""},{"id":"903124","code":"903124","name":"CEPILLO PLASTICO BRONCEAD","saldo":3,"unit":"UN","rubro":""},{"id":"903228","code":"903228","name":"FISCHER KIT APLICA SILICONA","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"903296","code":"903296","name":"ALIAFOR ESPATULAS ULTRA FLEX","saldo":1,"unit":"UN","rubro":""},{"id":"903297","code":"903297","name":"ALIAFOR ESPATULA FLEX 8MM","saldo":1,"unit":"UN","rubro":""},{"id":"901266","code":"901266","name":"PUNTA N2 25MM TEL","saldo":0,"unit":"UN","rubro":""},{"id":"902337","code":"902337","name":"MAKITA PUNTA PH2 X","saldo":104,"unit":"UN","rubro":"HERRAMIE"},{"id":"902422","code":"902422","name":"PUNTA PH2 X","saldo":-15,"unit":"UN","rubro":"HERRAMIE"},{"id":"902914","code":"902914","name":"MAKITA PUNTA PH2 X","saldo":14,"unit":"UN","rubro":"HERRAMIE"},{"id":"901238","code":"901238","name":"ARANDELA PLANA 1/2 ZINCADA","saldo":-78,"unit":"UN","rubro":"BULONERI"},{"id":"901298","code":"901298","name":"ARANDELA PLANA 1/4","saldo":782,"unit":"UN","rubro":"BULONERI"},{"id":"901299","code":"901299","name":"ARANDELA PLANA 5/16","saldo":337,"unit":"UN","rubro":"BULONERI"},{"id":"901300","code":"901300","name":"ARANDELA PLANA 3/8","saldo":1219,"unit":"UN","rubro":"BULONERI"},{"id":"901342","code":"901342","name":"ARANDELA PLANA 5/8","saldo":62,"unit":"UN","rubro":"BULONERI"},{"id":"901349","code":"901349","name":"ARANDELA PLANA 3/4","saldo":124,"unit":"UN","rubro":"BULONERI"},{"id":"902048","code":"902048","name":"ARANDELA PLASTICA P/SISTEMA","saldo":4818,"unit":"UN","rubro":"BULONERI"},{"id":"901222","code":"901222","name":"TORNILLO T1 DRYWALL MECH","saldo":301000,"unit":"UN","rubro":"BULONERI"},{"id":"901228","code":"901228","name":"TORNILLO C/ALAS 8X1.25 ZINC","saldo":41948,"unit":"UN","rubro":"BULONERI"},{"id":"901229","code":"901229","name":"TORNILLO T2 AUTOPERF 14X2","saldo":26480,"unit":"UN","rubro":"BULONERI"},{"id":"901231","code":"901231","name":"TORNILLO T2 AUTOPERF 14X2.5","saldo":13926,"unit":"UN","rubro":"BULONERI"},{"id":"901697","code":"901697","name":"TORNILLO T3 P/AGUJA 6X1.5","saldo":53795,"unit":"UN","rubro":"BULONERI"},{"id":"901899","code":"901899","name":"FISCHER PERNO FWA 10X95","saldo":752,"unit":"UN","rubro":"BULONERI"},{"id":"901902","code":"901902","name":"FISCHER PERNO FWA 12X150","saldo":150,"unit":"UN","rubro":"BULONERI"},{"id":"902232","code":"902232","name":"TORNILLO P/MADERA 6X2 NEG","saldo":19703,"unit":"UN","rubro":"BULONERI"},{"id":"902322","code":"902322","name":"TORNILLO CHIPBOARD 4.5X50","saldo":11996,"unit":"UN","rubro":"BULONERI"},{"id":"902724","code":"902724","name":"TORNILLO T2 HEXAG AUTOPERF","saldo":80,"unit":"UN","rubro":"BULONERI"},{"id":"902742","code":"902742","name":"TORNILLO T2 AUTOPERF 14X3","saldo":4200,"unit":"UN","rubro":"BULONERI"},{"id":"902784","code":"902784","name":"TORNILLO T1 AUTOPERF 14X2","saldo":24000,"unit":"UN","rubro":"BULONERI"},{"id":"902800","code":"902800","name":"TORNILLO HEXAG P17 14X3","saldo":1044,"unit":"UN","rubro":"BULONERI"},{"id":"902828","code":"902828","name":"TORNILLO HEXAG P17 14X2","saldo":7000,"unit":"UN","rubro":"BULONERI"},{"id":"902829","code":"902829","name":"TORNILLO T2 AUTOPERF 14X1.5","saldo":6200,"unit":"UN","rubro":"BULONERI"},{"id":"902856","code":"902856","name":"TORNILLO HEXAG P17 14X3 ZI","saldo":1090,"unit":"UN","rubro":"BULONERI"},{"id":"902857","code":"902857","name":"TORNILLO T2 HEXAG AUTOPERF","saldo":3000,"unit":"UN","rubro":"BULONERI"},{"id":"902867","code":"902867","name":"TORNILLO HEXAG P17 14X2 ZI","saldo":3400,"unit":"UN","rubro":"BULONERI"},{"id":"902942","code":"902942","name":"TORNILLO T2 AUTOPERF AGUJA","saldo":8700,"unit":"UN","rubro":"BULONERI"},{"id":"902943","code":"902943","name":"TORNILLO T2 AUTOPERF AGUJA","saldo":7200,"unit":"UN","rubro":"BULONERI"},{"id":"902948","code":"902948","name":"TORNILLO T2 AUTOPERF AGUJA","saldo":12000,"unit":"UN","rubro":"BULONERI"},{"id":"903366","code":"903366","name":"TORNILLO P/MADERA 6X1 NEG","saldo":28872,"unit":"UN","rubro":"BULONERI"},{"id":"901294","code":"901294","name":"VARILLA ROSC 1/4 6MM","saldo":14,"unit":"UN","rubro":"BULONERI"},{"id":"901296","code":"901296","name":"VARILLA ROSC 3/8 9.5MM","saldo":20,"unit":"UN","rubro":"BULONERI"},{"id":"901347","code":"901347","name":"VARILLA ROSC 3/4 ZINC","saldo":44,"unit":"UN","rubro":"BULONERI"},{"id":"901357","code":"901357","name":"CLAVO ESPIRALADO","saldo":420,"unit":"UN","rubro":"CLAVOS"},{"id":"901358","code":"901358","name":"CLAVO ESPIRALADO","saldo":168,"unit":"UN","rubro":"CLAVOS"},{"id":"901359","code":"901359","name":"CLAVO ESPIRALADO","saldo":1150,"unit":"UN","rubro":"CLAVOS"},{"id":"901362","code":"901362","name":"CLAVO CABEZA PLOMO","saldo":270,"unit":"UN","rubro":"CLAVOS"},{"id":"901364","code":"901364","name":"CLAVO CABEZA PERDIDA 12X40","saldo":17,"unit":"UN","rubro":"CLAVOS"},{"id":"901365","code":"901365","name":"CLAVO CABEZA PERDIDA 14X50","saldo":20,"unit":"UN","rubro":"CLAVOS"},{"id":"901854","code":"901854","name":"CLAVO ESPIRALADO","saldo":258,"unit":"UN","rubro":"CLAVOS"},{"id":"902043","code":"902043","name":"CLAVO PUNTA PARIS","saldo":275,"unit":"UN","rubro":"CLAVOS"},{"id":"902044","code":"902044","name":"CLAVO PUNTA PARIS","saldo":656,"unit":"UN","rubro":"CLAVOS"},{"id":"902805","code":"902805","name":"CLAVO PUNTA PARIS","saldo":228,"unit":"UN","rubro":"CLAVOS"},{"id":"903365","code":"903365","name":"CLAVO PUNTA PARIS","saldo":406,"unit":"UN","rubro":"CLAVOS"},{"id":"903392","code":"903392","name":"CLAVO PUNTA PARIS","saldo":377,"unit":"UN","rubro":"CLAVOS"},{"id":"901577","code":"901577","name":"TARUGO NYLON","saldo":92,"unit":"UN","rubro":""},{"id":"901904","code":"901904","name":"FISCHER AMPOLLA QUIMICA RM1","saldo":12,"unit":"UN","rubro":""},{"id":"901905","code":"901905","name":"FISCHER AMPOLLA QUIMICA RM1","saldo":40,"unit":"UN","rubro":""},{"id":"901994","code":"901994","name":"FISCHER TACO DUOPOWER 6X30","saldo":760,"unit":"UN","rubro":""},{"id":"901995","code":"901995","name":"FISCHER TACO DUOPOWER 10X50","saldo":238,"unit":"UN","rubro":""},{"id":"902313","code":"902313","name":"TARUGO NYLON","saldo":7026,"unit":"UN","rubro":""},{"id":"902314","code":"902314","name":"TARUGO NYLON","saldo":960,"unit":"UN","rubro":""},{"id":"901554","code":"901554","name":"CARRO HD","saldo":102,"unit":"UN","rubro":""},{"id":"901555","code":"901555","name":"CARRO HD","saldo":49,"unit":"UN","rubro":""},{"id":"901556","code":"901556","name":"CARRO HD","saldo":106,"unit":"UN","rubro":""},{"id":"901263","code":"901263","name":"BOQUILLA MAGNETICA 1/4","saldo":44,"unit":"UN","rubro":"HERRAMIE"},{"id":"901276","code":"901276","name":"LIJA AL AGUA OX ALUMINIO G","saldo":13,"unit":"UN","rubro":"HERRAMIE"},{"id":"901277","code":"901277","name":"LIJA AL AGUA OX ALUMINIO","saldo":30,"unit":"UN","rubro":"HERRAMIE"},{"id":"901893","code":"901893","name":"LIJA TELA ESMERIL","saldo":2,"unit":"UN","rubro":""},{"id":"901894","code":"901894","name":"LIJA TELA ESMERIL","saldo":4,"unit":"UN","rubro":""},{"id":"902097","code":"902097","name":"KLINGSPOR PS33C LIJA 230X280","saldo":11,"unit":"UN","rubro":"ABRASIVO"},{"id":"902099","code":"902099","name":"KLINGSPOR PS33C LIJA 230X280","saldo":-4,"unit":"UN","rubro":"ABRASIVO"},{"id":"902100","code":"902100","name":"KLINGSPOR PS33B LIJA 230X280","saldo":2,"unit":"UN","rubro":"ABRASIVO"},{"id":"902172","code":"902172","name":"KLINGSPOR PS8C LIJA 230X280","saldo":30,"unit":"UN","rubro":"ABRASIVO"},{"id":"902174","code":"902174","name":"KLINGSPOR PS8C LIJA 230X280","saldo":27,"unit":"UN","rubro":"ABRASIVO"},{"id":"902175","code":"902175","name":"KLINGSPOR PS8C LIJA 230X280","saldo":55,"unit":"UN","rubro":"ABRASIVO"},{"id":"902332","code":"902332","name":"GUANTE VAQUETA 1/2 PASEO","saldo":108,"unit":"UN","rubro":"INDUMENT"},{"id":"902508","code":"902508","name":"TAPONES AUDITIVOS C/CORDON","saldo":94,"unit":"UN","rubro":"INDUMENT"},{"id":"901312","code":"901312","name":"ANTIPARRAS","saldo":1,"unit":"UN","rubro":""},{"id":"902268","code":"902268","name":"ANTEOJOS SEGURIDAD CRISTAL","saldo":3,"unit":"UN","rubro":""},{"id":"902554","code":"902554","name":"ANTEOJOS SUPERVISOR OSCURO","saldo":14,"unit":"UN","rubro":""},{"id":"901163","code":"901163","name":"ALAMBRE MACIZO P/MIG","saldo":15,"unit":"UN","rubro":"ELEMENTO"},{"id":"903123","code":"903123","name":"SOPORTE MAGNETICO SOLDA","saldo":-8,"unit":"UN","rubro":""},{"id":"901387","code":"901387","name":"ADHESIVO MULTIFLEX INT","saldo":12,"unit":"UN","rubro":"ADHESIVO"},{"id":"901543","code":"901543","name":"FISCHER ESPUMA POLIURETANO","saldo":28,"unit":"UN","rubro":"ADHESIVO"},{"id":"901544","code":"901544","name":"FISCHER ESPUMA POLIURETANO","saldo":51,"unit":"UN","rubro":"ADHESIVO"},{"id":"901545","code":"901545","name":"FISCHER ESPUMA POLIURETANO","saldo":44,"unit":"UN","rubro":"ADHESIVO"},{"id":"901546","code":"901546","name":"FISCHER ESPUMA POLIURETANO P","saldo":10,"unit":"UN","rubro":"ADHESIVO"},{"id":"901745","code":"901745","name":"ADHESIL","saldo":19,"unit":"UN","rubro":"ADHESIVO"},{"id":"901892","code":"901892","name":"FISCHER ADHESIVO MS EXPRESS","saldo":4,"unit":"UN","rubro":"ADHESIVO"},{"id":"902009","code":"902009","name":"ADHESIL","saldo":21,"unit":"UN","rubro":"ADHESIVO"},{"id":"902011","code":"902011","name":"ADHESIL","saldo":56,"unit":"UN","rubro":"ADHESIVO"},{"id":"902012","code":"902012","name":"FISCHER MS-EXPRESS NEGRO","saldo":40,"unit":"UN","rubro":"ADHESIVO"},{"id":"902013","code":"902013","name":"FISCHER MS-EXPRESS BLANCO","saldo":23,"unit":"UN","rubro":"ADHESIVO"},{"id":"902014","code":"902014","name":"FISCHER MS-EXPRESS GRIS","saldo":24,"unit":"UN","rubro":"ADHESIVO"},{"id":"902032","code":"902032","name":"ADHESIL","saldo":6,"unit":"UN","rubro":"ADHESIVO"},{"id":"902470","code":"902470","name":"FISCHER MULTI SILICONA ACET","saldo":39,"unit":"UN","rubro":"ADHESIVO"},{"id":"902982","code":"902982","name":"SELLA CANALETAS ZINK GOTA","saldo":1,"unit":"UN","rubro":""},{"id":"903119","code":"903119","name":"TEK BOND SILICONA NEUTRA B","saldo":12,"unit":"UN","rubro":"ADHESIVO"},{"id":"903192","code":"903192","name":"TEKBOND ESPUMA POLIURETAN","saldo":2,"unit":"UN","rubro":"ADHESIVO"},{"id":"903193","code":"903193","name":"TEKBOND ESPUMA POLIURETAN","saldo":4,"unit":"UN","rubro":"ADHESIVO"},{"id":"903235","code":"903235","name":"CREMA EPOXY BLANCA","saldo":5,"unit":"UN","rubro":"ADHESIVO"},{"id":"903236","code":"903236","name":"CREMA EPOXY ACERO 200GRS","saldo":1,"unit":"UN","rubro":"ADHESIVO"},{"id":"903306","code":"903306","name":"ADHESIL MONTAJES","saldo":26,"unit":"UN","rubro":"ADHESIVO"},{"id":"903362","code":"903362","name":"SIKAFLEX","saldo":34,"unit":"UN","rubro":"ADHESIVO"},{"id":"901996","code":"901996","name":"FISCHER MECHA WIDIA WHS","saldo":4,"unit":"UN","rubro":""},{"id":"901997","code":"901997","name":"FISCHER MECHA WIDIA WHS","saldo":8,"unit":"UN","rubro":""},{"id":"901998","code":"901998","name":"FISCHER MECHA WIDIA WHS","saldo":5,"unit":"UN","rubro":""},{"id":"902624","code":"902624","name":"FISCHER MECHA HSS DIN","saldo":2,"unit":"UN","rubro":""},{"id":"902750","code":"902750","name":"FISCHER MECHA WIDIA WHS","saldo":8,"unit":"UN","rubro":""},{"id":"902771","code":"902771","name":"VENTURO MECHA WIDIA","saldo":16,"unit":"UN","rubro":""},{"id":"902772","code":"902772","name":"VENTURO MECHA WIDIA","saldo":6,"unit":"UN","rubro":""},{"id":"902775","code":"902775","name":"VENTURO MECHA PALETA","saldo":1,"unit":"UN","rubro":""},{"id":"902776","code":"902776","name":"VENTURO MECHA PALETA","saldo":1,"unit":"UN","rubro":""},{"id":"902872","code":"902872","name":"MAKITA SIERRA COPA BIMETAL","saldo":1,"unit":"UN","rubro":""},{"id":"903005","code":"903005","name":"MAKITA SIERRA COPA BIMETAL","saldo":2,"unit":"UN","rubro":""},{"id":"903006","code":"903006","name":"MAKITA SIERRA COPA BIMETAL","saldo":1,"unit":"UN","rubro":""},{"id":"903015","code":"903015","name":"ALIAFOR COPA DIAMANTADA","saldo":3,"unit":"UN","rubro":""},{"id":"903016","code":"903016","name":"ALIAFOR COPA DIAMANTADA","saldo":3,"unit":"UN","rubro":""},{"id":"903036","code":"903036","name":"FISCHER MECHA WIDIA WHS","saldo":3,"unit":"UN","rubro":""},{"id":"902444","code":"902444","name":"HOJA CUTTER TRAPEZOIDAL","saldo":10,"unit":"UN","rubro":""},{"id":"902635","code":"902635","name":"HOJA CUTTER","saldo":3,"unit":"UN","rubro":""},{"id":"903071","code":"903071","name":"MAKITA SEGUETA SIERRA CALA","saldo":4,"unit":"UN","rubro":""},{"id":"901763","code":"901763","name":"CINTA TRANSPARENTE","saldo":48,"unit":"UN","rubro":""},{"id":"902050","code":"902050","name":"FIBROFLEX CINTA MICROPERFOR","saldo":13,"unit":"UN","rubro":""},{"id":"902051","code":"902051","name":"FIBROFLEX CINTA MICROPERFOR","saldo":109,"unit":"UN","rubro":""},{"id":"902052","code":"902052","name":"FIBROFLEX CINTA MICROPERFOR","saldo":87,"unit":"UN","rubro":""},{"id":"902405","code":"902405","name":"NEWTEK CINTA TRAMADA","saldo":57,"unit":"UN","rubro":""},{"id":"902557","code":"902557","name":"PATAGONICO CINTA ADHESIVA","saldo":90,"unit":"UN","rubro":""},{"id":"902850","code":"902850","name":"FIBROFLEX CINTA PAPEL","saldo":81,"unit":"UN","rubro":""},{"id":"901105","code":"901105","name":"LADRILLO DOBLE MURO 24X18","saldo":5264,"unit":"UN","rubro":"LADRILLO"},{"id":"901592","code":"901592","name":"LADRILLO CHICO 2DA TRELEW","saldo":-164,"unit":"UN","rubro":"LADRILLO"},{"id":"901593","code":"901593","name":"LADRILLO 15X26 CM 1RA ALLEN","saldo":546,"unit":"UN","rubro":"LADRILLO"},{"id":"901518","code":"901518","name":"REFRACTARIO TEJUELA 229X11","saldo":1874,"unit":"UN","rubro":""},{"id":"901214","code":"901214","name":"ISOVER LANA VIDRIO FL","saldo":40,"unit":"UN","rubro":"AISLANTES"},{"id":"902393","code":"902393","name":"ISOVER LANA VIDRIO ACUSTICA","saldo":23,"unit":"UN","rubro":"AISLANTES"},{"id":"902753","code":"902753","name":"ISOVER LANA VIDRIO FL","saldo":32,"unit":"UN","rubro":"AISLANTES"},{"id":"902904","code":"902904","name":"ISOVER LANA VIDRIO FL","saldo":50,"unit":"UN","rubro":"AISLANTES"},{"id":"903335","code":"903335","name":"LANA DE VIDRIO DURLOCK","saldo":4,"unit":"UN","rubro":"AISLANTES"},{"id":"902648","code":"902648","name":"ISOLANT MEMBRANA SIMPLE","saldo":19,"unit":"UN","rubro":"AISLANTES"},{"id":"902649","code":"902649","name":"ISOLANT MEMBRANA SIMPLE","saldo":9,"unit":"UN","rubro":"AISLANTES"},{"id":"902650","code":"902650","name":"ISOLANT MEMBRANA 5MM ALU","saldo":34,"unit":"UN","rubro":"AISLANTES"},{"id":"902651","code":"902651","name":"ISOLANT MEMBRANA 10MM ALU","saldo":47,"unit":"UN","rubro":"AISLANTES"},{"id":"902652","code":"902652","name":"ISOLANT BANDA ACUSTICA","saldo":72,"unit":"UN","rubro":"AISLANTES"},{"id":"902702","code":"902702","name":"ISOLANT BANDA ACUSTICA","saldo":46,"unit":"UN","rubro":"AISLANTES"},{"id":"903396","code":"903396","name":"DURLOCK BANDA ACUSTICA","saldo":161,"unit":"UN","rubro":"AISLANTES"},{"id":"903397","code":"903397","name":"ISOLANT MEMBRANA SUPER TB","saldo":12,"unit":"UN","rubro":"AISLANTES"},{"id":"901261","code":"901261","name":"RED DE SOSTEN P/TECHO","saldo":59047,"unit":"UN","rubro":""},{"id":"903051","code":"903051","name":"FIBROFLEX MALLA 5X5 MM","saldo":35,"unit":"UN","rubro":""},{"id":"902299","code":"902299","name":"MEGAFACIL CINTA ASFALTICA","saldo":18,"unit":"UN","rubro":"AISLANTES"},{"id":"902303","code":"902303","name":"MEGAFLEX MEMBRANA ASF","saldo":8,"unit":"UN","rubro":"AISLANTES"},{"id":"902456","code":"902456","name":"MEGAFLEX PINTURA ASFALTICA","saldo":28,"unit":"UN","rubro":"AISLANTES"},{"id":"902468","code":"902468","name":"MEGAFACIL CINTA ASFALTICA","saldo":19,"unit":"UN","rubro":""},{"id":"902796","code":"902796","name":"MEGAFLEX PINTURA ASFALTICA","saldo":38,"unit":"UN","rubro":""},{"id":"903022","code":"903022","name":"MEGAFACIL CINTA ASFALTICA","saldo":25,"unit":"UN","rubro":""},{"id":"902869","code":"902869","name":"ANGULO","saldo":12,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902870","code":"902870","name":"ANGULO","saldo":54,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902930","code":"902930","name":"ANGULO","saldo":34,"unit":"UN","rubro":"PERFIL, TU"},{"id":"903393","code":"903393","name":"ANGULO","saldo":11,"unit":"UN","rubro":"PERFIL, TU"},{"id":"903020","code":"903020","name":"PLANCHUELA","saldo":286,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901725","code":"901725","name":"HIERRO LISO 16MM X","saldo":76,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901859","code":"901859","name":"HIERRO LISO 12MM X","saldo":36,"unit":"UN","rubro":"HIERRO Y M"},{"id":"903042","code":"903042","name":"HIERRO LISO 10MM X","saldo":55,"unit":"UN","rubro":"HIERRO Y M"},{"id":"903048","code":"903048","name":"HIERRO LISO 6MM X","saldo":732,"unit":"UN","rubro":"HIERRO Y M"},{"id":"903049","code":"903049","name":"HIERRO LISO 8MM X","saldo":403,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901350","code":"901350","name":"IPN","saldo":3,"unit":"UN","rubro":""},{"id":"902527","code":"902527","name":"PERFIL W 250X44.8 X","saldo":3,"unit":"UN","rubro":""},{"id":"902528","code":"902528","name":"PERFIL W 250X23.4 X","saldo":4,"unit":"UN","rubro":""},{"id":"902547","code":"902547","name":"IPN","saldo":2,"unit":"UN","rubro":""},{"id":"902548","code":"902548","name":"IPN","saldo":1,"unit":"UN","rubro":""},{"id":"902546","code":"902546","name":"UPN","saldo":2,"unit":"UN","rubro":""},{"id":"901256","code":"901256","name":"UPN","saldo":3,"unit":"UN","rubro":""},{"id":"901432","code":"901432","name":"UPN","saldo":7,"unit":"UN","rubro":""},{"id":"901588","code":"901588","name":"MALLA SIMA R84 2X6X15","saldo":2,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901678","code":"901678","name":"METAL DESPLEGADO PESADO","saldo":4,"unit":"UN","rubro":""},{"id":"902258","code":"902258","name":"METAL DESPLEGADO 250-20-5","saldo":10,"unit":"UN","rubro":""},{"id":"902407","code":"902407","name":"METAL DESPLEGADO 250-16-4","saldo":15,"unit":"UN","rubro":""},{"id":"901857","code":"901857","name":"MALLA BALCONERA GALV","saldo":2,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901858","code":"901858","name":"MALLA BALCONERA GALV","saldo":14,"unit":"UN","rubro":"HIERRO Y M"},{"id":"902023","code":"902023","name":"MALLA BALCONERA NEGRA","saldo":33,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901828","code":"901828","name":"TEJIDO ROMBOIDAL 2-63-14.5","saldo":26,"unit":"UN","rubro":"ALAMBRES"},{"id":"903176","code":"903176","name":"TEJIDO ROMBOIDAL","saldo":43,"unit":"UN","rubro":"ALAMBRES"},{"id":"901516","code":"901516","name":"CERCO VERDE PESADO","saldo":295,"unit":"UN","rubro":"ALAMBRES"},{"id":"901517","code":"901517","name":"CERCO VERDE LIVIANO","saldo":296,"unit":"UN","rubro":"ALAMBRES"},{"id":"902532","code":"902532","name":"PLANCHUELA","saldo":385,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902539","code":"902539","name":"PERFIL C 100X50X15 X","saldo":48,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901598","code":"901598","name":"FENOLICO 18MM PINO N3","saldo":400,"unit":"UN","rubro":""},{"id":"902229","code":"902229","name":"FENOLICO 18MM EUCALIPTO","saldo":92,"unit":"UN","rubro":""},{"id":"902230","code":"902230","name":"FENOLICO 12MM PINO N3","saldo":2,"unit":"UN","rubro":""},{"id":"901820","code":"901820","name":"DURLOCK PLACA SEMI CUBIER","saldo":18,"unit":"UN","rubro":""},{"id":"902360","code":"902360","name":"DURLOCK PLACA DESMONT PIN","saldo":200,"unit":"UN","rubro":""},{"id":"902835","code":"902835","name":"DURLOCK PLACA ACUSTICA","saldo":398,"unit":"UN","rubro":""},{"id":"903280","code":"903280","name":"SIMPLISIMA MARMOL CALACATTA","saldo":1,"unit":"UN","rubro":""},{"id":"903281","code":"903281","name":"SIMPLISIMA MARMOL TRAVIATT","saldo":1,"unit":"UN","rubro":""},{"id":"902639","code":"902639","name":"CUMBRERA","saldo":39,"unit":"UN","rubro":"CHAPAS L"},{"id":"902641","code":"902641","name":"BABETA","saldo":45,"unit":"UN","rubro":"CHAPAS L"},{"id":"902643","code":"902643","name":"CENEFA PAJARERA","saldo":44,"unit":"UN","rubro":"CHAPAS L"},{"id":"902487","code":"902487","name":"CHAPA LISA PREP ROJA N25","saldo":61,"unit":"UN","rubro":"CHAPAS L"},{"id":"902214","code":"902214","name":"CHAPA LISA LAC 3/16 4.75MM","saldo":1,"unit":"UN","rubro":"CHAPAS L"},{"id":"902633","code":"902633","name":"CHAPA SEMILLA MELON 1/4","saldo":1,"unit":"UN","rubro":"CHAPAS L"},{"id":"903168","code":"903168","name":"CHAPA LISA LAC","saldo":2,"unit":"UN","rubro":"CHAPAS L"},{"id":"902485","code":"902485","name":"CERAMICA LOURDES EUCALIPT","saldo":32,"unit":"UN","rubro":"REVESTIMI"},{"id":"902568","code":"902568","name":"CERAMICA LOURDES COTTO PL","saldo":144,"unit":"UN","rubro":"REVESTIMI"},{"id":"903028","code":"903028","name":"CERAMICA LOURDES CASTOR GR","saldo":4,"unit":"UN","rubro":"REVESTIMI"},{"id":"901108","code":"901108","name":"SAN PIETRO PORCEL GLORIA MA","saldo":46,"unit":"UN","rubro":"REVESTIMI"},{"id":"902389","code":"902389","name":"SAN PIETRO PORCEL CEMENTO","saldo":106,"unit":"UN","rubro":"REVESTIMI"},{"id":"902416","code":"902416","name":"SAN PIETRO PORCEL CALIPSO W","saldo":2,"unit":"UN","rubro":"REVESTIMI"},{"id":"902567","code":"902567","name":"SPL OXIDO TERRA SATINADO","saldo":5,"unit":"UN","rubro":"REVESTIMI"},{"id":"902934","code":"902934","name":"SAN PIETRO FOLKS GRIS 1RA","saldo":409,"unit":"UN","rubro":"REVESTIMI"},{"id":"902962","code":"902962","name":"SAN PIETRO PORCEL GLORIA BE","saldo":1,"unit":"UN","rubro":"REVESTIMI"},{"id":"902925","code":"902925","name":"SPL SPARKLE CANELA 6X22 CM","saldo":40,"unit":"UN","rubro":"REVESTIMI"},{"id":"902486","code":"902486","name":"CERAMICA LOURDES CALIPSO G","saldo":110,"unit":"UN","rubro":"REVESTIMI"},{"id":"903334","code":"903334","name":"CERAMICA LOURDES BLANCO P","saldo":6,"unit":"UN","rubro":"REVESTIMI"},{"id":"901386","code":"901386","name":"PEDRAFLEX GOLDEN TRASL","saldo":19,"unit":"UN","rubro":"REVESTIMI"},{"id":"902933","code":"902933","name":"SIDING CEDRAL SMART NATURA","saldo":95,"unit":"UN","rubro":""},{"id":"902039","code":"902039","name":"LP SMARTPANEL R8 H 1.22X4.88","saldo":16.5,"unit":"UN","rubro":""},{"id":"901412","code":"901412","name":"DURLOCK MASILLA LPU MULTI","saldo":41,"unit":"UN","rubro":""},{"id":"903279","code":"903279","name":"DURLOCK BASE COAT MONOCOA","saldo":20,"unit":"UN","rubro":""},{"id":"901713","code":"901713","name":"YESO CORRAL X","saldo":76,"unit":"UN","rubro":""},{"id":"901208","code":"901208","name":"CALTEX","saldo":-15,"unit":"UN","rubro":"CEMENTOS"},{"id":"901211","code":"901211","name":"CAL ESTRELLA","saldo":166,"unit":"UN","rubro":"CEMENTOS"},{"id":"901419","code":"901419","name":"SIKA STUKO PATAGONICO","saldo":106,"unit":"UN","rubro":""},{"id":"901420","code":"901420","name":"SIKA STUKO EXTERIOR X","saldo":133,"unit":"UN","rubro":""},{"id":"901579","code":"901579","name":"KLAUKOL PAREX TRIO JET","saldo":1,"unit":"UN","rubro":""},{"id":"901702","code":"901702","name":"SIKA STUKO INTERIOR X","saldo":68,"unit":"UN","rubro":""},{"id":"902540","code":"902540","name":"PCR ADHESIVO LISTO FLEX","saldo":102,"unit":"UN","rubro":""},{"id":"903001","code":"903001","name":"SIKA MONOTOP","saldo":45,"unit":"UN","rubro":""},{"id":"901416","code":"901416","name":"KLAUKOL HIDROFUGO X","saldo":2,"unit":"UN","rubro":""},{"id":"902309","code":"902309","name":"TACURU X","saldo":17,"unit":"UN","rubro":""},{"id":"902845","code":"902845","name":"SIKA","saldo":54,"unit":"UN","rubro":""},{"id":"903040","code":"903040","name":"SIKA","saldo":94,"unit":"UN","rubro":""},{"id":"901367","code":"901367","name":"PLASTICO NEGRO","saldo":725.5,"unit":"UN","rubro":""},{"id":"901366","code":"901366","name":"PLASTICO CRISTAL","saldo":1662,"unit":"UN","rubro":""},{"id":"903343","code":"903343","name":"TIRANTE PINO CEP 3X6X4.25 M","saldo":49,"unit":"UN","rubro":""},{"id":"903345","code":"903345","name":"TIRANTE PINO CEP 2X2X3.05 M","saldo":360,"unit":"UN","rubro":""},{"id":"902789","code":"902789","name":"MACHIMBRE COLONIAL 3/4","saldo":4,"unit":"UN","rubro":""},{"id":"902791","code":"902791","name":"MACHIMBRE COLONIAL 3/4","saldo":60,"unit":"UN","rubro":""},{"id":"902248","code":"902248","name":"TIRANTE DE PINO 3X3 X ML","saldo":1403,"unit":"UN","rubro":""},{"id":"902556","code":"902556","name":"LP VIGAS I JOIST","saldo":116,"unit":"UN","rubro":""},{"id":"902855","code":"902855","name":"TIRANTE DE PINO 2X2 X","saldo":1800,"unit":"UN","rubro":""},{"id":"902898","code":"902898","name":"ALAMBRE DE ATAR ROLLO X KG","saldo":970,"unit":"UN","rubro":""},{"id":"902215","code":"902215","name":"LANIN LAVATORIO 35MM","saldo":1,"unit":"UN","rubro":"GRIFERIA"},{"id":"902217","code":"902217","name":"LANIN BIDET C/TRANSF 35MM","saldo":2,"unit":"UN","rubro":"GRIFERIA"},{"id":"902223","code":"902223","name":"TUBO LAVATORIO PICO ALTO","saldo":2,"unit":"UN","rubro":"GRIFERIA"},{"id":"902326","code":"902326","name":"GRIFERIA ALIZE LAVAT","saldo":8,"unit":"UN","rubro":"GRIFERIA"},{"id":"902327","code":"902327","name":"GRIFERIA ALIZE BIDET","saldo":7,"unit":"UN","rubro":"GRIFERIA"},{"id":"902328","code":"902328","name":"GRIFERIA ALIZE DUCHA EXT","saldo":8,"unit":"UN","rubro":"GRIFERIA"},{"id":"901215","code":"901215","name":"LADRILLO CERAMICO 8X18X33","saldo":2020,"unit":"UN","rubro":"LADRILLO"},{"id":"901216","code":"901216","name":"LADRILLO CERAMICO 12X18X33","saldo":47377,"unit":"UN","rubro":"LADRILLO"},{"id":"901217","code":"901217","name":"LADRILLO CERAMICO 18X18X33","saldo":118447,"unit":"UN","rubro":"LADRILLO"},{"id":"903113","code":"903113","name":"CEMENTO COMODORO","saldo":1138,"unit":"UN","rubro":"CEMENTOS"},{"id":"902926","code":"902926","name":"CALTEX X","saldo":149,"unit":"UN","rubro":"CEMENTOS"},{"id":"901209","code":"901209","name":"PCR ADHESIVO LISTO IMPERM","saldo":28,"unit":"UN","rubro":""},{"id":"901210","code":"901210","name":"PCR ADHESIVO LISTO PORCELLA","saldo":26,"unit":"UN","rubro":""},{"id":"903246","code":"903246","name":"PCR ADHESIVO LISTO CERAMICO","saldo":115,"unit":"UN","rubro":""},{"id":"903247","code":"903247","name":"PCR ADHESIVO LISTO PORCELAN","saldo":51,"unit":"UN","rubro":""},{"id":"901218","code":"901218","name":"BLOCK LISO PORTANTE 19X19","saldo":551,"unit":"UN","rubro":""},{"id":"901219","code":"901219","name":"BLOCK LISO PORTANTE 19X19","saldo":898,"unit":"UN","rubro":""},{"id":"901468","code":"901468","name":"VIGUETA PRETENSADA T","saldo":13,"unit":"UN","rubro":"PREMOLDE"},{"id":"901469","code":"901469","name":"VIGUETA PRETENSADA T","saldo":22,"unit":"UN","rubro":"PREMOLDE"},{"id":"901470","code":"901470","name":"VIGUETA PRETENSADA T","saldo":28,"unit":"UN","rubro":"PREMOLDE"},{"id":"901471","code":"901471","name":"VIGUETA PRETENSADA T","saldo":23,"unit":"UN","rubro":"PREMOLDE"},{"id":"901472","code":"901472","name":"VIGUETA PRETENSADA T","saldo":13,"unit":"UN","rubro":"PREMOLDE"},{"id":"901473","code":"901473","name":"VIGUETA PRETENSADA T","saldo":9,"unit":"UN","rubro":"PREMOLDE"},{"id":"901474","code":"901474","name":"VIGUETA PRETENSADA T","saldo":22,"unit":"UN","rubro":"PREMOLDE"},{"id":"901475","code":"901475","name":"VIGUETA PRETENSADA T","saldo":19,"unit":"UN","rubro":"PREMOLDE"},{"id":"901478","code":"901478","name":"VIGUETA PRETENSADA T","saldo":38,"unit":"UN","rubro":"PREMOLDE"},{"id":"901479","code":"901479","name":"VIGUETA PRETENSADA T","saldo":42,"unit":"UN","rubro":"PREMOLDE"},{"id":"901480","code":"901480","name":"VIGUETA PRETENSADA T","saldo":104,"unit":"UN","rubro":"PREMOLDE"},{"id":"901482","code":"901482","name":"VIGUETA PRETENSADA T","saldo":72,"unit":"UN","rubro":"PREMOLDE"},{"id":"901483","code":"901483","name":"VIGUETA PRETENSADA T","saldo":20,"unit":"UN","rubro":"PREMOLDE"},{"id":"901486","code":"901486","name":"VIGUETA PRETENSADA T","saldo":5,"unit":"UN","rubro":"PREMOLDE"},{"id":"901616","code":"901616","name":"BLOCK SIMIL PIEDRA PORTANTE","saldo":470,"unit":"UN","rubro":"PREMOLDE"},{"id":"901808","code":"901808","name":"VIGUETA PRETENSADA T","saldo":36,"unit":"UN","rubro":"PREMOLDE"},{"id":"902283","code":"902283","name":"PLACA SIMIL PIEDRA 19X39","saldo":254,"unit":"UN","rubro":"PREMOLDE"},{"id":"902645","code":"902645","name":"ADOQUIN UNI-STONE","saldo":2887,"unit":"UN","rubro":"PREMOLDE"},{"id":"901445","code":"901445","name":"IPN","saldo":3,"unit":"UN","rubro":""},{"id":"901447","code":"901447","name":"IPN","saldo":11,"unit":"UN","rubro":""},{"id":"901719","code":"901719","name":"ETERNIT PERFIL J","saldo":48,"unit":"UN","rubro":""},{"id":"901720","code":"901720","name":"ETERNIT PERFIL CIERRE","saldo":10,"unit":"UN","rubro":""},{"id":"901501","code":"901501","name":"SIMPLISIMA ADHESIVO X","saldo":33,"unit":"UN","rubro":""},{"id":"901220","code":"901220","name":"SIDING CEDRAL TEXT NATURAL","saldo":3005,"unit":"UN","rubro":""},{"id":"901221","code":"901221","name":"SIDING CEDRAL TEXT NATURAL","saldo":942,"unit":"UN","rubro":""},{"id":"901614","code":"901614","name":"FAJA NAT ETERNIT 2.40M","saldo":52,"unit":"UN","rubro":""},{"id":"901717","code":"901717","name":"SIDING CEDRAL TEXT GRIS","saldo":120,"unit":"UN","rubro":""},{"id":"901502","code":"901502","name":"SIMPLISIMA TRAVERTINO BEIGE","saldo":1,"unit":"UN","rubro":""},{"id":"901503","code":"901503","name":"SIMPLISIMA PIEDRA ROMANA","saldo":1,"unit":"UN","rubro":""},{"id":"901624","code":"901624","name":"SIMPLISIMA MADERA ENTABL","saldo":4,"unit":"UN","rubro":""},{"id":"901737","code":"901737","name":"SIMPLISIMA MADERA RUSTICA","saldo":3,"unit":"UN","rubro":""},{"id":"901615","code":"901615","name":"ETERNIT TANQUE OBRA BICAPA","saldo":12,"unit":"UN","rubro":"TANQUES Y"},{"id":"901378","code":"901378","name":"LADRILLO TELGOPOR AISBLOK","saldo":747,"unit":"UN","rubro":"AISLANTES"},{"id":"901715","code":"901715","name":"TELGOPOR ALTA DENSIDAD 1X1","saldo":322,"unit":"UN","rubro":"AISLANTES"},{"id":"902021","code":"902021","name":"TELGOPOR ALTA DENSIDAD 1X1","saldo":427,"unit":"UN","rubro":"AISLANTES"},{"id":"902292","code":"902292","name":"TELGOPOR ALTA DENSIDAD 1X1","saldo":394,"unit":"UN","rubro":"AISLANTES"},{"id":"901398","code":"901398","name":"TELGOPOR BAJA DENSIDAD 1X1","saldo":189,"unit":"UN","rubro":"AISLANTES"},{"id":"901738","code":"901738","name":"REFRACTARIO TEJUELA 229X11","saldo":429,"unit":"UN","rubro":""},{"id":"901739","code":"901739","name":"REFRACTARIO LADRILLO 229X1","saldo":19,"unit":"UN","rubro":""},{"id":"903130","code":"903130","name":"DURLOCK CINTA MICROPERFOR","saldo":100,"unit":"UN","rubro":""},{"id":"901660","code":"901660","name":"DURLOCK MEMBRANA AGUA Y V","saldo":31,"unit":"UN","rubro":"AISLANTES"},{"id":"901671","code":"901671","name":"DURLOCK LANA POLIESTER","saldo":5,"unit":"UN","rubro":"AISLANTES"},{"id":"901672","code":"901672","name":"DURLOCK LANA POLIESTER","saldo":28,"unit":"UN","rubro":"AISLANTES"},{"id":"901673","code":"901673","name":"DURLOCK LANA POLIESTER","saldo":29,"unit":"UN","rubro":"AISLANTES"},{"id":"901118","code":"901118","name":"DURLOCK PLACA REVOQUE SEC","saldo":197,"unit":"UN","rubro":""},{"id":"901204","code":"901204","name":"DURLOCK PLACA RESISTENTE H","saldo":223,"unit":"UN","rubro":""},{"id":"901371","code":"901371","name":"DURLOCK PLACA ESTANDAR","saldo":743,"unit":"UN","rubro":""},{"id":"901372","code":"901372","name":"DURLOCK PLACA ESTANDAR","saldo":1003,"unit":"UN","rubro":""},{"id":"901373","code":"901373","name":"DURLOCK PLACA RESISTENTE A","saldo":39,"unit":"UN","rubro":""},{"id":"901409","code":"901409","name":"DURLOCK PLACA DESMONTABLE","saldo":122,"unit":"UN","rubro":""},{"id":"901413","code":"901413","name":"DURLOCK PLACA CIEL 7MM","saldo":177,"unit":"UN","rubro":""},{"id":"901611","code":"901611","name":"DURLOCK PLACA ANTI HUMEDAD","saldo":124,"unit":"UN","rubro":""},{"id":"901804","code":"901804","name":"DURLOCK PLACA AQUABOARD","saldo":29,"unit":"UN","rubro":""},{"id":"901504","code":"901504","name":"SUPERBOARD 6MM USOS MULTI","saldo":491,"unit":"UN","rubro":""},{"id":"901505","code":"901505","name":"SUPERBOARD 8MM PAREDES","saldo":178,"unit":"UN","rubro":""},{"id":"901506","code":"901506","name":"SUPERBOARD 10MM PAREDES","saldo":240,"unit":"UN","rubro":""},{"id":"901119","code":"901119","name":"DURLOCK ADHESIVO REVOQUE S","saldo":65,"unit":"UN","rubro":""},{"id":"901205","code":"901205","name":"DURLOCK MASILLA LPU MULTI","saldo":87,"unit":"UN","rubro":""},{"id":"901526","code":"901526","name":"DURLOCK MASILLA LPU MULTI","saldo":82,"unit":"UN","rubro":""},{"id":"901612","code":"901612","name":"DURLOCK MASILLA AH X","saldo":27,"unit":"UN","rubro":""},{"id":"901137","code":"901137","name":"TUBO ESTR 80X80 X","saldo":27,"unit":"UN","rubro":""},{"id":"901141","code":"901141","name":"TUBO ESTR 80X20 X","saldo":46,"unit":"UN","rubro":""},{"id":"901189","code":"901189","name":"TUBO ESTR 100X50 X","saldo":119,"unit":"UN","rubro":""},{"id":"901190","code":"901190","name":"TUBO ESTR 50X50 X","saldo":103,"unit":"UN","rubro":""},{"id":"901191","code":"901191","name":"TUBO ESTR 100X100 X","saldo":91,"unit":"UN","rubro":""},{"id":"901262","code":"901262","name":"TUBO ESTR 40X20 X","saldo":119,"unit":"UN","rubro":""},{"id":"901339","code":"901339","name":"TUBO ESTR 60X30 X","saldo":8,"unit":"UN","rubro":""},{"id":"901355","code":"901355","name":"TUBO ESTR 40X40 X","saldo":93,"unit":"UN","rubro":""},{"id":"901433","code":"901433","name":"TUBO ESTR 60X40 X","saldo":45,"unit":"UN","rubro":""},{"id":"901442","code":"901442","name":"TUBO ESTR 70X30 X","saldo":57,"unit":"UN","rubro":""},{"id":"901452","code":"901452","name":"TUBO ESTR 20X20 X","saldo":126,"unit":"UN","rubro":""},{"id":"901459","code":"901459","name":"TUBO ESTR 15X15 X","saldo":145,"unit":"UN","rubro":""},{"id":"901657","code":"901657","name":"TUBO ESTR 30X30 X","saldo":24,"unit":"UN","rubro":""},{"id":"901765","code":"901765","name":"TUBO ESTR 50X50 X","saldo":24,"unit":"UN","rubro":""},{"id":"901805","code":"901805","name":"TUBO ESTR 60X20 X","saldo":83,"unit":"UN","rubro":""},{"id":"901806","code":"901806","name":"TUBO ESTR 60X60 X","saldo":60,"unit":"UN","rubro":""},{"id":"901810","code":"901810","name":"TUBO ESTR 30X20 X","saldo":206,"unit":"UN","rubro":""},{"id":"902022","code":"902022","name":"TUBO ESTR 50X30 X","saldo":16,"unit":"UN","rubro":""},{"id":"902391","code":"902391","name":"TUBO ESTR 70X70 X","saldo":91,"unit":"UN","rubro":""},{"id":"902427","code":"902427","name":"TUBO ESTR 120X40 X","saldo":21,"unit":"UN","rubro":""},{"id":"903095","code":"903095","name":"TUBO ESTR 120X40 X","saldo":24,"unit":"UN","rubro":""},{"id":"901175","code":"901175","name":"PERFIL C 120X50X15 X","saldo":23,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901177","code":"901177","name":"PERFIL C 120X50X15 X","saldo":88,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901179","code":"901179","name":"PERFIL C 160X60X20 X","saldo":80,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901247","code":"901247","name":"PERFIL C 100X50X15 X","saldo":71,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901125","code":"901125","name":"CHAPA SINUSOIDAL GRIS PIZAR","saldo":261.85,"unit":"UN","rubro":"CHAPAS L"},{"id":"901196","code":"901196","name":"CHAPA SINUSOIDAL GALVA N27","saldo":2444.33,"unit":"UN","rubro":"CHAPAS L"},{"id":"901198","code":"901198","name":"CHAPA SINUSOIDAL GALVA N25","saldo":1411.58,"unit":"UN","rubro":"CHAPAS L"},{"id":"901199","code":"901199","name":"CHAPA SINUSOIDAL NEGRA N25","saldo":2791.2,"unit":"UN","rubro":"CHAPAS L"},{"id":"902463","code":"902463","name":"CHAPA SINUSOIDAL ROJA N25","saldo":449.5,"unit":"UN","rubro":"CHAPAS L"},{"id":"901197","code":"901197","name":"CHAPA T101 NEGRA N25","saldo":892.38,"unit":"UN","rubro":"CHAPAS L"},{"id":"901193","code":"901193","name":"CHAPA LISA PREP GRIS N25","saldo":59,"unit":"UN","rubro":"CHAPAS L"},{"id":"901194","code":"901194","name":"CHAPA LISA PREP NEGRA N25","saldo":113,"unit":"UN","rubro":"CHAPAS L"},{"id":"901195","code":"901195","name":"CHAPA LISA GALVANIZADA N25","saldo":283,"unit":"UN","rubro":"CHAPAS L"},{"id":"901243","code":"901243","name":"CHAPA LISA PREP BLANCA N25","saldo":44,"unit":"UN","rubro":"CHAPAS L"},{"id":"901636","code":"901636","name":"CHAPA LISA PREP VERDE N25","saldo":27,"unit":"UN","rubro":"CHAPAS L"},{"id":"902344","code":"902344","name":"CHAPA LISA GALVANIZADA N27","saldo":104,"unit":"UN","rubro":"CHAPAS L"},{"id":"901244","code":"901244","name":"CHAPA LISA LAF N16","saldo":23,"unit":"UN","rubro":"CHAPAS L"},{"id":"901384","code":"901384","name":"CHAPA LISA LAF N18","saldo":3,"unit":"UN","rubro":"CHAPAS L"},{"id":"901164","code":"901164","name":"HIERRO ADN TOR 6MM X","saldo":3850,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901165","code":"901165","name":"HIERRO ADN TOR 8MM X","saldo":3334,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901166","code":"901166","name":"HIERRO ADN TOR 10MM X","saldo":1236,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901167","code":"901167","name":"HIERRO ADN TOR 12MM X","saldo":1542,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901168","code":"901168","name":"HIERRO ADN TOR 16MM X","saldo":448,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901840","code":"901840","name":"HIERRO ADN TOR 4MM X","saldo":875,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901171","code":"901171","name":"MALLA SIMA Q131 2.40X6X15","saldo":304,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901172","code":"901172","name":"MALLA SIMA Q188 2.40X6X15","saldo":93,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901173","code":"901173","name":"MALLA SIMA Q335 2.40X6X15","saldo":18,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901178","code":"901178","name":"PERFIL C 140X60X20 X","saldo":59,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901246","code":"901246","name":"PERFIL C 80X40X15 X","saldo":56.5,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901251","code":"901251","name":"PERFIL C 200X80X20 X","saldo":19,"unit":"UN","rubro":""},{"id":"901519","code":"901519","name":"PERFIL C 180X70X20 X","saldo":69,"unit":"UN","rubro":"HIERRO Y M"},{"id":"902027","code":"902027","name":"PERFIL C 180X70X20 X","saldo":32,"unit":"UN","rubro":""},{"id":"901240","code":"901240","name":"ALAMBRE NEGRO RECOCIDO X KG","saldo":3265.9,"unit":"UN","rubro":"ALAMBRES"},{"id":"901241","code":"901241","name":"ALAMBRON N8 X KG","saldo":940,"unit":"UN","rubro":"ALAMBRES"},{"id":"901493","code":"901493","name":"ALAMBRE ALTA RES","saldo":50,"unit":"UN","rubro":"ALAMBRES"},{"id":"902297","code":"902297","name":"ALAMBRON N10 X KG","saldo":3365,"unit":"UN","rubro":"ALAMBRES"},{"id":"902880","code":"902880","name":"PLANCHUELA","saldo":76,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901098","code":"901098","name":"PERFIL PGC 100X40X15 X","saldo":125,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901099","code":"901099","name":"PERFIL PGC 150X40X15 X","saldo":11,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901155","code":"901155","name":"PERFIL PGC 150X40X15 X","saldo":219,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901181","code":"901181","name":"PERFIL PGC 70X40X15 X","saldo":263,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901338","code":"901338","name":"PERFIL PGC 100X40X15 X","saldo":795,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901811","code":"901811","name":"PERFIL PGC 150X40X15 X","saldo":232,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901813","code":"901813","name":"PERFIL PGC 200X40X15 X","saldo":18,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901101","code":"901101","name":"PERFIL PGU 150X35 X","saldo":62,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901103","code":"901103","name":"PERFIL PGU 100X35 X","saldo":202,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901154","code":"901154","name":"PERFIL PGU 150X35 X","saldo":120,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901183","code":"901183","name":"PERFIL PGU 70X35 X","saldo":131,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901184","code":"901184","name":"PERFIL PGU 100X35 X","saldo":99,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901812","code":"901812","name":"PERFIL PGU 150X35 X","saldo":155,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901814","code":"901814","name":"PERFIL PGU 200X35 X","saldo":54,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902325","code":"902325","name":"PERFIL PGU 200X35 X","saldo":47,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901538","code":"901538","name":"PERFIL PGO","saldo":1127,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902812","code":"902812","name":"PERFIL PGO","saldo":110,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901457","code":"901457","name":"PERFIL OMEGA","saldo":500,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901187","code":"901187","name":"MONTANTE 35X35 X","saldo":14530,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901188","code":"901188","name":"MONTANTE 70X35 X","saldo":8702,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901185","code":"901185","name":"SOLERA 35X30 X","saldo":8083,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901186","code":"901186","name":"SOLERA 70X30 X","saldo":6685,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901334","code":"901334","name":"CANTONERA CHAPA","saldo":1037,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901335","code":"901335","name":"LARGUERO BCO 15/16 26MM","saldo":284,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901336","code":"901336","name":"TRAVESANO BCO 15/16 26MM","saldo":852,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901337","code":"901337","name":"PERIMETRAL BCO 20X20 MM","saldo":116,"unit":"UN","rubro":"PERFIL, TU"},{"id":"901102","code":"901102","name":"JMA ANCLAJE S/HTT","saldo":85,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902653","code":"902653","name":"JMA ARANDELA 50X65 X","saldo":248,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902654","code":"902654","name":"JMA CARTELA 200X200 X","saldo":213,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902656","code":"902656","name":"JMA UNION L GRANDE 80X50","saldo":370,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902657","code":"902657","name":"JMA TENSOR C/AUTOPERFORANT","saldo":78,"unit":"UN","rubro":"PERFIL, TU"},{"id":"903410","code":"903410","name":"SPL CEMENTO GRIS 6MM","saldo":71,"unit":"UN","rubro":""},{"id":"901520","code":"901520","name":"CERAMICA LOURDES VICTORIA G","saldo":26,"unit":"UN","rubro":"REVESTIMI"},{"id":"901622","code":"901622","name":"CERAMICA LOURDES COTTO MA","saldo":22,"unit":"UN","rubro":"REVESTIMI"},{"id":"901706","code":"901706","name":"CERAMICA LOURDES MADERO L","saldo":3,"unit":"UN","rubro":"REVESTIMI"},{"id":"902516","code":"902516","name":"CERAMICA LOURDES TAFI BEIGE","saldo":7,"unit":"UN","rubro":"REVESTIMI"},{"id":"902937","code":"902937","name":"CERAMICA LOURDES MADERO L","saldo":17,"unit":"UN","rubro":"REVESTIMI"},{"id":"903361","code":"903361","name":"CERAMICA LOURDES NEVADO G","saldo":54,"unit":"UN","rubro":"REVESTIMI"},{"id":"901121","code":"901121","name":"SAN PIETRO PORCEL KAIRO GRI","saldo":181,"unit":"UN","rubro":"REVESTIMI"},{"id":"902663","code":"902663","name":"SPL MADERO BIANCO 6MM","saldo":12,"unit":"UN","rubro":"REVESTIMI"},{"id":"901116","code":"901116","name":"CERAMICA LOURDES NIEVE SAT","saldo":192,"unit":"UN","rubro":"REVESTIMI"},{"id":"901658","code":"901658","name":"ISOVER LANA VIDRIO ROLAC","saldo":4,"unit":"UN","rubro":"AISLANTES"},{"id":"903402","code":"903402","name":"ISOVER LANA VIDRIO ROLAC","saldo":31,"unit":"UN","rubro":"AISLANTES"},{"id":"901200","code":"901200","name":"OSB APA 1.22X2.44 X","saldo":668,"unit":"UN","rubro":"PLACAS DE"},{"id":"901201","code":"901201","name":"OSB APA 1.22X2.44 X","saldo":861,"unit":"UN","rubro":"PLACAS DE"},{"id":"901202","code":"901202","name":"OSB APA 1.22X2.44 X","saldo":141,"unit":"UN","rubro":"PLACAS DE"},{"id":"901203","code":"901203","name":"OSB APA 1.22X2.44 X","saldo":224,"unit":"UN","rubro":"PLACAS DE"},{"id":"901143","code":"901143","name":"LP SMARTLAP","saldo":204,"unit":"UN","rubro":"PLACAS DE"},{"id":"901816","code":"901816","name":"LP SMARTPANEL R8 1.22X2.44","saldo":63,"unit":"UN","rubro":"PLACAS DE"},{"id":"901360","code":"901360","name":"CLAVO ESPIRALADO","saldo":311,"unit":"UN","rubro":"CLAVOS"},{"id":"901361","code":"901361","name":"CLAVO ESPIRALADO","saldo":119,"unit":"UN","rubro":"CLAVOS"},{"id":"901363","code":"901363","name":"CLAVO CABEZA PLOMO","saldo":266,"unit":"UN","rubro":"CLAVOS"},{"id":"901613","code":"901613","name":"CLAVO ESPIRALADO","saldo":166,"unit":"UN","rubro":"CLAVOS"},{"id":"901127","code":"901127","name":"PATAGONICO MEMBRANA HIDR","saldo":153,"unit":"UN","rubro":"AISLANTES"},{"id":"901590","code":"901590","name":"ZONDA MEMBRANA HIDROFUGA","saldo":16,"unit":"UN","rubro":"AISLANTES"},{"id":"901742","code":"901742","name":"EVEL CINTA METRICA RETROBLO","saldo":4,"unit":"UN","rubro":"HERRAMIE"},{"id":"901877","code":"901877","name":"EVEL CINTA METRICA RETROBLO","saldo":4,"unit":"UN","rubro":"HERRAMIE"},{"id":"901825","code":"901825","name":"MAKITA ATORNILLADOR INAL","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"901829","code":"901829","name":"MAKITA BATERIA LXT 18V 5AH","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"901830","code":"901830","name":"MAKITA CARGADOR 18V DC18","saldo":1,"unit":"UN","rubro":"HERRAMIE"},{"id":"903079","code":"903079","name":"MAKITA CORTADORA TABLAROC","saldo":1,"unit":"UN","rubro":"HERRAMIE"},{"id":"903081","code":"903081","name":"MAKITA CARGADOR 12V FAST","saldo":6,"unit":"UN","rubro":"HERRAMIE"},{"id":"901776","code":"901776","name":"SERRUCHO CARPINTERO","saldo":1,"unit":"UN","rubro":""},{"id":"901779","code":"901779","name":"MOTA MAZA DE GOMA 700GR","saldo":3,"unit":"UN","rubro":"HERRAMIE"},{"id":"901780","code":"901780","name":"SERRUCHO P/PLACA DE YESO","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"901786","code":"901786","name":"MOTA NIVEL TUBULAR 60CM","saldo":3,"unit":"UN","rubro":"HERRAMIE"},{"id":"901789","code":"901789","name":"MOTA NIVEL ALUM MAGNETICO","saldo":1,"unit":"UN","rubro":"HERRAMIE"},{"id":"901792","code":"901792","name":"MOTA MARTILLO GALPONERO","saldo":1,"unit":"UN","rubro":"HERRAMIE"},{"id":"901884","code":"901884","name":"MOTA TIJERA AVIACION RECTA","saldo":1,"unit":"UN","rubro":"HERRAMIE"},{"id":"902290","code":"902290","name":"MOTA MARTILLO GALPONERO","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"902492","code":"902492","name":"REMACHE 3.5x14 X","saldo":2,"unit":"UN","rubro":""},{"id":"902493","code":"902493","name":"REMACHE 3.5x19 X","saldo":2,"unit":"UN","rubro":""},{"id":"902495","code":"902495","name":"REMACHE 4x10 X","saldo":1,"unit":"UN","rubro":""},{"id":"902498","code":"902498","name":"REMACHE 4x6 X","saldo":2,"unit":"UN","rubro":""},{"id":"902499","code":"902499","name":"REMACHE 5x14 X","saldo":3,"unit":"UN","rubro":""},{"id":"902500","code":"902500","name":"REMACHE 5x20 X","saldo":2,"unit":"UN","rubro":""},{"id":"902501","code":"902501","name":"REMACHE 5x25 X","saldo":1,"unit":"UN","rubro":""},{"id":"902513","code":"902513","name":"MOTA MAZA ALBANIL 1.5KG","saldo":1,"unit":"UN","rubro":"HERRAMIE"},{"id":"902514","code":"902514","name":"STJ ESCUADRA MILIMETRADA","saldo":1,"unit":"UN","rubro":"HERRAMIE"},{"id":"902677","code":"902677","name":"MOTA GRAPAS N4 10MM X","saldo":11,"unit":"UN","rubro":""},{"id":"902719","code":"902719","name":"MOTA GRAPAS N3 10MM","saldo":12,"unit":"UN","rubro":""},{"id":"902721","code":"902721","name":"MOTA GRAPAS N4","saldo":10,"unit":"UN","rubro":""},{"id":"903063","code":"903063","name":"MOTA MARTILLO GALPONERO","saldo":2,"unit":"UN","rubro":""},{"id":"903065","code":"903065","name":"MASA MAGNETICA 60X150 15KG","saldo":2,"unit":"UN","rubro":""},{"id":"902723","code":"902723","name":"MAKITA PUNTA PH2 X","saldo":78,"unit":"UN","rubro":"HERRAMIE"},{"id":"901541","code":"901541","name":"FISCHER PERNO FWA 10X115","saldo":300,"unit":"UN","rubro":""},{"id":"903046","code":"903046","name":"FISCHER PERNO FWA 16X140","saldo":50,"unit":"UN","rubro":""},{"id":"901866","code":"901866","name":"FISCHER TACO GKA","saldo":235,"unit":"UN","rubro":""},{"id":"901867","code":"901867","name":"FISCHER TACO C/TOPE","saldo":218,"unit":"UN","rubro":""},{"id":"901870","code":"901870","name":"FISCHER TACO DUOTEC","saldo":80,"unit":"UN","rubro":""},{"id":"901871","code":"901871","name":"FISCHER TACO DUOPOWER 8X40","saldo":186,"unit":"UN","rubro":""},{"id":"902034","code":"902034","name":"FISCHER TACO DUOPOWER 10X80","saldo":75,"unit":"UN","rubro":""},{"id":"903303","code":"903303","name":"FISCHER TACO DUOPOWER 12X60","saldo":65,"unit":"UN","rubro":""},{"id":"903304","code":"903304","name":"FISCHER GK TACO AUTOPER S","saldo":585,"unit":"UN","rubro":""},{"id":"903305","code":"903305","name":"FISCHER GK TACO AUTOPER C","saldo":553,"unit":"UN","rubro":""},{"id":"902058","code":"902058","name":"MOTA VASO HEXAGONAL MAGN","saldo":156,"unit":"UN","rubro":"HERRAMIE"},{"id":"902358","code":"902358","name":"MOTA VASO HEXAGONAL MAGN","saldo":47,"unit":"UN","rubro":"HERRAMIE"},{"id":"901772","code":"901772","name":"LIJA ELECTROCUT","saldo":29,"unit":"UN","rubro":""},{"id":"901773","code":"901773","name":"LIJA ELECTROCUT","saldo":19,"unit":"UN","rubro":""},{"id":"902460","code":"902460","name":"LIJA MADERA/PARED","saldo":33,"unit":"UN","rubro":""},{"id":"901714","code":"901714","name":"GUANTE NITRILO 1/2 BANO","saldo":11,"unit":"UN","rubro":"INDUMENT"},{"id":"902903","code":"902903","name":"GUANTE DE NITRILO 1/2 BANO","saldo":34,"unit":"UN","rubro":"INDUMENT"},{"id":"903008","code":"903008","name":"MAKITA DISCO DE CORTE INOX","saldo":19,"unit":"UN","rubro":""},{"id":"903019","code":"903019","name":"ALIAFOR DISCO DE DESBASTE","saldo":1,"unit":"UN","rubro":""},{"id":"901753","code":"901753","name":"KLEBER DISCO DIAM 3EN1","saldo":2,"unit":"UN","rubro":""},{"id":"901758","code":"901758","name":"KLEBER DISCO DIAM TURBO FI","saldo":3,"unit":"UN","rubro":""},{"id":"902345","code":"902345","name":"ANTEOJOS NEGRO BANDIDO","saldo":11,"unit":"UN","rubro":""},{"id":"902346","code":"902346","name":"ANTEOJOS SUPERVISOR CRIST","saldo":25,"unit":"UN","rubro":""},{"id":"903007","code":"903007","name":"MONOLENTE VANGUARDIA","saldo":20,"unit":"UN","rubro":""},{"id":"901743","code":"901743","name":"FISCHER SILICONA PREMIUM","saldo":35,"unit":"UN","rubro":"ADHESIVO"},{"id":"902035","code":"902035","name":"ADHESIL","saldo":1,"unit":"UN","rubro":"ADHESIVO"},{"id":"901872","code":"901872","name":"FISCHER MECHA HSS DIN","saldo":16,"unit":"UN","rubro":""},{"id":"902288","code":"902288","name":"FISCHER MECHA WIDIA SDSP","saldo":3,"unit":"UN","rubro":""},{"id":"902504","code":"902504","name":"FISCHER MECHA HSS DIN","saldo":14,"unit":"UN","rubro":""},{"id":"901781","code":"901781","name":"HOJA DE SIERRA BIMETAL","saldo":10,"unit":"UN","rubro":""},{"id":"901782","code":"901782","name":"HOJA DE SIERRA BIMETAL","saldo":27,"unit":"UN","rubro":""},{"id":"903032","code":"903032","name":"HOJA DE SIERRA BIMETAL","saldo":15,"unit":"UN","rubro":""},{"id":"902461","code":"902461","name":"3M CINTA DUC TAPE 48MM","saldo":6,"unit":"UN","rubro":""},{"id":"901547","code":"901547","name":"DUCASSE RUEDA AL PISO","saldo":19,"unit":"UN","rubro":""},{"id":"901548","code":"901548","name":"DUCASSE RUEDA AL PISO","saldo":10,"unit":"UN","rubro":""},{"id":"901549","code":"901549","name":"DUCASSE RUEDA AL PISO","saldo":31,"unit":"UN","rubro":""},{"id":"901551","code":"901551","name":"DUCASSE RUEDA AL PISO","saldo":5,"unit":"UN","rubro":""},{"id":"901552","code":"901552","name":"DUCASSE RUEDA AL PISO","saldo":22,"unit":"UN","rubro":""},{"id":"901553","code":"901553","name":"DUCASSE RUEDA AL PISO","saldo":11,"unit":"UN","rubro":""},{"id":"901557","code":"901557","name":"DUCASSE RIEL U","saldo":7,"unit":"UN","rubro":""},{"id":"901558","code":"901558","name":"DUCASSE SOPORTE LATERAL","saldo":16,"unit":"UN","rubro":""},{"id":"901559","code":"901559","name":"DUCASSE TOPE INFERIOR","saldo":11,"unit":"UN","rubro":""},{"id":"901561","code":"901561","name":"DUCASSE TOPE RECIB SUP","saldo":7,"unit":"UN","rubro":""},{"id":"901563","code":"901563","name":"DUCASSE RODILLO GUIA 40X12","saldo":10,"unit":"UN","rubro":""},{"id":"901569","code":"901569","name":"DUCASSE RUEDA AL PISO","saldo":37,"unit":"UN","rubro":""},{"id":"901570","code":"901570","name":"DUCASSE SISTEMA CORREDIZO","saldo":4,"unit":"UN","rubro":""},{"id":"901575","code":"901575","name":"DUCASSE SISTEMA CORREDIZO","saldo":2,"unit":"UN","rubro":""},{"id":"901836","code":"901836","name":"ANGULO","saldo":157,"unit":"UN","rubro":""},{"id":"901838","code":"901838","name":"ANGULO","saldo":353,"unit":"UN","rubro":""},{"id":"901861","code":"901861","name":"ANGULO","saldo":175,"unit":"UN","rubro":"HIERRO Y M"},{"id":"901831","code":"901831","name":"PLANCHUELA","saldo":71,"unit":"UN","rubro":""},{"id":"901832","code":"901832","name":"PLANCHUELA","saldo":336,"unit":"UN","rubro":""},{"id":"901833","code":"901833","name":"PLANCHUELA","saldo":448,"unit":"UN","rubro":""},{"id":"901834","code":"901834","name":"PLANCHUELA","saldo":31,"unit":"UN","rubro":""},{"id":"902237","code":"902237","name":"ANGULO","saldo":157,"unit":"UN","rubro":"PERFIL, TU"},{"id":"903400","code":"903400","name":"ANGULO","saldo":57,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902425","code":"902425","name":"ANGULO 5/8 X 1/8 X","saldo":130,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902426","code":"902426","name":"ANGULO","saldo":18,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902432","code":"902432","name":"ANGULO","saldo":31,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902431","code":"902431","name":"PLANCHUELA","saldo":132,"unit":"UN","rubro":"PERFIL, TU"},{"id":"902749","code":"902749","name":"HIERRO LISO 20MM X","saldo":125,"unit":"UN","rubro":"HIERRO Y M"},{"id":"902905","code":"902905","name":"ISOVER LANA VIDRIO ACUSTICA","saldo":17,"unit":"UN","rubro":"AISLANTES"},{"id":"902963","code":"902963","name":"ISOVER LANA VIDRIO ACUSTICA","saldo":24,"unit":"UN","rubro":"AISLANTES"},{"id":"903355","code":"903355","name":"ISOVER LANA VIDRIO ROLAC","saldo":94,"unit":"UN","rubro":"AISLANTES"},{"id":"903356","code":"903356","name":"ISOVER LANA VIDRIO ROLAC","saldo":35,"unit":"UN","rubro":"AISLANTES"},{"id":"901581","code":"901581","name":"KLAUKOL FLEX FLUIDO X","saldo":3,"unit":"UN","rubro":""},{"id":"902474","code":"902474","name":"SIKA ANTIFROSTO ADITIVO","saldo":4,"unit":"UN","rubro":""},{"id":"902475","code":"902475","name":"SIKA ANTIFROSTO ADITIVO","saldo":12,"unit":"UN","rubro":""},{"id":"902480","code":"902480","name":"SIKA","saldo":27,"unit":"UN","rubro":""},{"id":"902481","code":"902481","name":"SIKA","saldo":54,"unit":"UN","rubro":""},{"id":"902482","code":"902482","name":"SIKA","saldo":11,"unit":"UN","rubro":""},{"id":"902478","code":"902478","name":"SIKA FRIOLITE OC ADITIVO 20KG","saldo":8,"unit":"UN","rubro":""},{"id":"902479","code":"902479","name":"SIKA FRIOLITE OC ADITIVO 5KG","saldo":5,"unit":"UN","rubro":""},{"id":"903376","code":"903376","name":"TIRANTE 3X6 X","saldo":30,"unit":"UN","rubro":""},{"id":"903377","code":"903377","name":"TIRANTE 3X6 X","saldo":6,"unit":"UN","rubro":""},{"id":"903379","code":"903379","name":"TIRANTE 3X6 X","saldo":7,"unit":"UN","rubro":""},{"id":"903398","code":"903398","name":"TIRANTE 12X6 X","saldo":4,"unit":"UN","rubro":""},{"id":"903110","code":"903110","name":"PINCEL OBRA N10 EL GALGO","saldo":28,"unit":"UN","rubro":""},{"id":"903112","code":"903112","name":"MINI RODILLO ESPUMA","saldo":12,"unit":"UN","rubro":""},{"id":"902891","code":"902891","name":"GHERARDI PALA FORJ CORAZON","saldo":7,"unit":"UN","rubro":"HERRAMIE"},{"id":"902893","code":"902893","name":"GHERARDI PALA FORJ CUADRADA","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"902894","code":"902894","name":"GHERARDI CUCHARA ACERO FO","saldo":4,"unit":"UN","rubro":"HERRAMIE"},{"id":"902895","code":"902895","name":"GHERARDI CUCHARA ACERO FO","saldo":6,"unit":"UN","rubro":"HERRAMIE"},{"id":"902897","code":"902897","name":"GHERARDI TENAZA AC AL CROM","saldo":2,"unit":"UN","rubro":"HERRAMIE"},{"id":"901600","code":"901600","name":"MACHIMBRE COLONIAL 1/2","saldo":580,"unit":"UN","rubro":"MADERAS"},{"id":"902644","code":"902644","name":"MACHIMBRE COLONIAL 3/4","saldo":54,"unit":"UN","rubro":"MADERAS"},{"id":"902683","code":"902683","name":"MACHIMBRE COLONIAL 1/2 X","saldo":83,"unit":"UN","rubro":"MADERAS"},{"id":"902684","code":"902684","name":"MACHIMBRE COLONIAL 1/2","saldo":956,"unit":"UN","rubro":"MADERAS"},{"id":"902685","code":"902685","name":"MACHIMBRE COLONIAL 1/2","saldo":307,"unit":"UN","rubro":"MADERAS"},{"id":"902686","code":"902686","name":"MACHIMBRE COLONIAL 1X6","saldo":122,"unit":"UN","rubro":"MADERAS"},{"id":"902687","code":"902687","name":"MACHIMBRE COLONIAL 1X6","saldo":81,"unit":"UN","rubro":"MADERAS"},{"id":"902906","code":"902906","name":"MACHIMBRE COLONIAL 3/4","saldo":85,"unit":"UN","rubro":"MADERAS"},{"id":"903273","code":"903273","name":"MACHIMBRE COLONIAL 1/2","saldo":45,"unit":"UN","rubro":"MADERAS"},{"id":"903274","code":"903274","name":"MACHIMBRE COLONIAL 1/2","saldo":151,"unit":"UN","rubro":"MADERAS"},{"id":"903258","code":"903258","name":"ROTOPAM CAMARA DE REGIST","saldo":3,"unit":"UN","rubro":"TANQUES Y"},{"id":"901777","code":"901777","name":"ROTOPAM CAMARA DE REGIST","saldo":3,"unit":"UN","rubro":"TANQUES Y"},{"id":"901778","code":"901778","name":"ROTOPAM CAMARA DE REGIST","saldo":5,"unit":"UN","rubro":"TANQUES Y"},{"id":"901802","code":"901802","name":"ROTOPAM DIGESTOR SEPTICO","saldo":2,"unit":"UN","rubro":"TANQUES Y"},{"id":"901112","code":"901112","name":"TUBO ESTR 100X60 X","saldo":2,"unit":"UN","rubro":""},{"id":"901460","code":"901460","name":"TUBO ESTR 60X30 X","saldo":53,"unit":"UN","rubro":""},{"id":"901461","code":"901461","name":"TUBO ESTR 40X30 X","saldo":21,"unit":"UN","rubro":""},{"id":"902967","code":"902967","name":"TIRANTE PINO CEP 2X6 X","saldo":50,"unit":"UN","rubro":""},{"id":"902968","code":"902968","name":"TIRANTE PINO CEP 2X6 X","saldo":68,"unit":"UN","rubro":""},{"id":"902969","code":"902969","name":"TIRANTE PINO CEP 2X6 X","saldo":131,"unit":"UN","rubro":""},{"id":"902970","code":"902970","name":"TIRANTE PINO CEP 2X6 X","saldo":139,"unit":"UN","rubro":""},{"id":"902971","code":"902971","name":"TIRANTE PINO CEP 2X6 X","saldo":280,"unit":"UN","rubro":""},{"id":"902972","code":"902972","name":"TIRANTE PINO CEP 2X5 X","saldo":20,"unit":"UN","rubro":""},{"id":"902973","code":"902973","name":"TIRANTE PINO CEP 2X4 X","saldo":360,"unit":"UN","rubro":""},{"id":"902977","code":"902977","name":"TABLAS DE PINO CEP 1X6 X","saldo":293,"unit":"UN","rubro":"MADERAS"},{"id":"902978","code":"902978","name":"TABLA PINO CEP 1X8 X","saldo":100,"unit":"UN","rubro":"MADERAS"},{"id":"902979","code":"902979","name":"TABLERO PINO 1.20X3 X","saldo":27,"unit":"UN","rubro":"MADERAS"},{"id":"902980","code":"902980","name":"TABLERO PINO 1.20X3 X","saldo":17,"unit":"UN","rubro":"MADERAS"},{"id":"903360","code":"903360","name":"TABLAS DE PINO CEP 1X5 X","saldo":10,"unit":"UN","rubro":"MADERAS"},{"id":"901629","code":"901629","name":"KLAUKOL PORCELLANATO FLUI","saldo":19,"unit":"UN","rubro":""},{"id":"901630","code":"901630","name":"KLAUKOL IMPERM POTENCIADO","saldo":63,"unit":"UN","rubro":""},{"id":"901632","code":"901632","name":"KLAUKOL PASTINA FLUIDA TAL","saldo":203,"unit":"UN","rubro":""},{"id":"901821","code":"901821","name":"KLAUKOL PASTINA FLUIDA BLE","saldo":128,"unit":"UN","rubro":""},{"id":"902245","code":"902245","name":"KLAUKOL PASTINA FLUIDA MER","saldo":58,"unit":"UN","rubro":""},{"id":"902333","code":"902333","name":"CINTA DE PELIGRO","saldo":10,"unit":"UN","rubro":""},{"id":"903096","code":"903096","name":"CONVERLUX 3EN1 NEGRO MAT","saldo":13,"unit":"UN","rubro":""},{"id":"903097","code":"903097","name":"AGUARRAS FLEMING X","saldo":36,"unit":"UN","rubro":""},{"id":"901691","code":"901691","name":"PISO VINILICO","saldo":6,"unit":"UN","rubro":"REVESTIMI"},{"id":"901693","code":"901693","name":"PISO VINILICO","saldo":5,"unit":"UN","rubro":"REVESTIMI"},{"id":"901694","code":"901694","name":"PISO VINILICO ROLLO JUTEKS","saldo":65,"unit":"UN","rubro":"REVESTIMI"},{"id":"902469","code":"902469","name":"LADRILLON","saldo":2376,"unit":"UN","rubro":"LADRILLO"},{"id":"902428","code":"902428","name":"COMPRIBAND SINUSOIDAL","saldo":1691,"unit":"UN","rubro":"AISLANTES"},{"id":"902429","code":"902429","name":"COMPRIBAND TRAPEZOIDAL T1","saldo":340,"unit":"UN","rubro":"AISLANTES"},{"id":"902430","code":"902430","name":"COMPRIBAND TRAPEZOIDAL T1","saldo":259,"unit":"UN","rubro":"AISLANTES"},{"id":"901252","code":"901252","name":"TARUGO NYLON","saldo":1098,"unit":"UN","rubro":"BULONERI"},{"id":"901303","code":"901303","name":"TARUGO NYLON","saldo":9353,"unit":"UN","rubro":"BULONERI"},{"id":"901665","code":"901665","name":"NEWTEK CINTA DE PAPEL","saldo":15,"unit":"UN","rubro":""},{"id":"902321","code":"902321","name":"TEJIDO ROMBOIDAL 1.80-63","saldo":8,"unit":"UN","rubro":"ALAMBRES"},{"id":"902351","code":"902351","name":"TABLERO","saldo":10,"unit":"UN","rubro":""},{"id":"902352","code":"902352","name":"TABLERO","saldo":23,"unit":"UN","rubro":""},{"id":"902355","code":"902355","name":"TABLERO LAMINADO","saldo":12,"unit":"UN","rubro":""},{"id":"902356","code":"902356","name":"TABLERO LAMINADO","saldo":2,"unit":"UN","rubro":""},{"id":"901107","code":"901107","name":"TORNILLO T1 HEXAG AUTOPERF","saldo":42242,"unit":"UN","rubro":"BULONERI"},{"id":"901129","code":"901129","name":"TORNILLO HEXAG P17 14X2.5 ZI","saldo":12650,"unit":"UN","rubro":"BULONERI"},{"id":"901223","code":"901223","name":"TORNILLO T1 DRYWALL MECH","saldo":317850,"unit":"UN","rubro":"BULONERI"},{"id":"901225","code":"901225","name":"TORNILLO T2 DRYWALL MECH","saldo":31440,"unit":"UN","rubro":"BULONERI"},{"id":"901230","code":"901230","name":"TORNILLO T3 DRYWALL 6X1.5","saldo":48550,"unit":"UN","rubro":"BULONERI"},{"id":"901232","code":"901232","name":"TORNILLO T2 DRYWALL AGUJA","saldo":91414,"unit":"UN","rubro":"BULONERI"},{"id":"901234","code":"901234","name":"TORNILLO T2 DRYWALL MECH","saldo":19860,"unit":"UN","rubro":"BULONERI"},{"id":"901236","code":"901236","name":"TORNILLO T2 AUTOPERF 14X1.5","saldo":10800,"unit":"UN","rubro":"BULONERI"},{"id":"901289","code":"901289","name":"TORNILLO CHIPBOARD 4.5X40","saldo":37700,"unit":"UN","rubro":"BULONERI"},{"id":"901344","code":"901344","name":"TORNILLO C/ALAS 10X1.5 ZINC","saldo":34560,"unit":"UN","rubro":"BULONERI"},{"id":"901345","code":"901345","name":"TORNILLO P/MADERA 8X2 DOR","saldo":11495,"unit":"UN","rubro":"BULONERI"},{"id":"901438","code":"901438","name":"TORNILLO T1 AUTOPERF AGUJA","saldo":648520,"unit":"UN","rubro":"BULONERI"},{"id":"901448","code":"901448","name":"TORNILLO T1 AUTOPERF AGUJA","saldo":348160,"unit":"UN","rubro":"BULONERI"},{"id":"901587","code":"901587","name":"TORNILLO HEXAG P17 14X2.5 N","saldo":4635,"unit":"UN","rubro":"BULONERI"},{"id":"901604","code":"901604","name":"TORNILLO T2 AUTOPERF 14X2 C","saldo":11000,"unit":"UN","rubro":"BULONERI"},{"id":"901709","code":"901709","name":"TORNILLO P/MADERA 8X1.5 DO","saldo":25000,"unit":"UN","rubro":"BULONERI"},{"id":"902026","code":"902026","name":"TORNILLO T2 AUTOPERF AGUJA","saldo":22520,"unit":"UN","rubro":"BULONERI"},{"id":"902317","code":"902317","name":"TORNILLO T1 AUTOPERF 14X2.5","saldo":36000,"unit":"UN","rubro":"BULONERI"},{"id":"902382","code":"902382","name":"TORNILLO P/MADERA 10X1.75","saldo":69295,"unit":"UN","rubro":"BULONERI"},{"id":"902565","code":"902565","name":"TORNILLO P/MADERA 8X2 NEG","saldo":17310,"unit":"UN","rubro":"BULONERI"},{"id":"902735","code":"902735","name":"TORNILLO T2 AUTOPERF 14X3 ZI","saldo":4200,"unit":"UN","rubro":"BULONERI"},{"id":"902740","code":"902740","name":"TORNILLO CHIPBOARD 4X40","saldo":25000,"unit":"UN","rubro":"BULONERI"},{"id":"902741","code":"902741","name":"TORNILLO T2 AUTOPERF AGUJA","saldo":9000,"unit":"UN","rubro":"BULONERI"},{"id":"902748","code":"902748","name":"TORNILLO FRESADA","saldo":5800,"unit":"UN","rubro":"BULONERI"},{"id":"903002","code":"903002","name":"TORNILLO T1 AUTOPERF 14X1","saldo":7200,"unit":"UN","rubro":"BULONERI"},{"id":"903047","code":"903047","name":"TORNILLO T1 HEXAG AUTOPERF","saldo":6000,"unit":"UN","rubro":"BULONERI"},{"id":"903074","code":"903074","name":"TORNILLO T2 AUTOPERF 14X5","saldo":5500,"unit":"UN","rubro":"BULONERI"},{"id":"901297","code":"901297","name":"VARILLA ROSCADA 1/2","saldo":16,"unit":"UN","rubro":"BULONERI"},{"id":"901340","code":"901340","name":"VARILLA ROSC 5/8 ZINC","saldo":39,"unit":"UN","rubro":"BULONERI"},{"id":"902316","code":"902316","name":"GAFAS BRAVA2 INCOLORO","saldo":11,"unit":"UN","rubro":""},{"id":"901242","code":"901242","name":"ELECTRODO CONARCO","saldo":614.25,"unit":"UN","rubro":"ELEMENTO"},{"id":"901302","code":"901302","name":"ELECTRODO CONARCO","saldo":482.86,"unit":"UN","rubro":"ELEMENTO"},{"id":"902945","code":"902945","name":"ELECTRODO CONARCO","saldo":90,"unit":"UN","rubro":"ELEMENTO"},{"id":"901574","code":"901574","name":"NORTON DISCO DE CORTE BNA1","saldo":555,"unit":"UN","rubro":""},{"id":"903202","code":"903202","name":"DISCO NORTON DCBNA","saldo":29,"unit":"UN","rubro":""},{"id":"902734","code":"902734","name":"CLASSIC DISCO FLAP R801","saldo":30,"unit":"UN","rubro":""},{"id":"902149","code":"902149","name":"KLINGSPOR A46TZ DISCO CORTE","saldo":104,"unit":"UN","rubro":"ABRASIVO"},{"id":"902376","code":"902376","name":"MAKITA DISCO CORTE","saldo":189,"unit":"UN","rubro":""},{"id":"902552","code":"902552","name":"MAKITA DISCO DE CORTE","saldo":10,"unit":"UN","rubro":""},{"id":"902715","code":"902715","name":"PEGASO DISCO P/SENSITIVA","saldo":71,"unit":"UN","rubro":""},{"id":"903099","code":"903099","name":"PEGASO DISCO DE CORTE Y115","saldo":502,"unit":"UN","rubro":""},{"id":"903100","code":"903100","name":"PEGASO DISCO DE CORTE Y180","saldo":269,"unit":"UN","rubro":""},{"id":"903237","code":"903237","name":"NORTON DISCO DE CORTE CLAS","saldo":386.0,"unit":"UN","rubro":""},{"id":"902597","code":"902597","name":"ALIAFOR DISCO DIAM TURBO F","saldo":5,"unit":"UN","rubro":"ABRASIVO"},{"id":"902603","code":"902603","name":"ALIAFOR DISCO DIAM CONTINU","saldo":5,"unit":"UN","rubro":"ABRASIVO"},{"id":"902609","code":"902609","name":"ALIAFOR DISCO DIAM LASER LS","saldo":2,"unit":"UN","rubro":"ABRASIVO"},{"id":"902611","code":"902611","name":"PATROLL DISCO DIAM CONTINU","saldo":7,"unit":"UN","rubro":"ABRASIVO"},{"id":"902612","code":"902612","name":"PATROLL DISCO DIAM CONTINU","saldo":7,"unit":"UN","rubro":"ABRASIVO"},{"id":"902613","code":"902613","name":"PATROLL DISCO DIAM SEGMENT","saldo":3,"unit":"UN","rubro":"ABRASIVO"},{"id":"902614","code":"902614","name":"PATROLL DISCO DIAM SEGMENT","saldo":7,"unit":"UN","rubro":"ABRASIVO"},{"id":"902615","code":"902615","name":"PATROLL DISCO DIAM TURBO","saldo":7,"unit":"UN","rubro":"ABRASIVO"},{"id":"902616","code":"902616","name":"PATROLL DISCO DIAM TURBO","saldo":8,"unit":"UN","rubro":"ABRASIVO"},{"id":"902617","code":"902617","name":"ALIAFOR DISCO DIAM METALES","saldo":5,"unit":"UN","rubro":"ABRASIVO"},{"id":"902909","code":"902909","name":"ALIAFOR DISCO DIAM METALES","saldo":5,"unit":"UN","rubro":"ABRASIVO"},{"id":"903194","code":"903194","name":"ALIAFOR DISCO TURBO FINO","saldo":4,"unit":"UN","rubro":"ABRASIVO"},{"id":"903294","code":"903294","name":"PEGASO CEPILLO COPA TRENZ","saldo":4,"unit":"UN","rubro":""},{"id":"903298","code":"903298","name":"PEGASO DISCO DE CORTE Y115","saldo":806,"unit":"UN","rubro":"ABRASIVO"},{"id":"903370","code":"903370","name":"ALIAFOR DISCO DIAM TURBO F","saldo":9,"unit":"UN","rubro":"ABRASIVO"},{"id":"902779","code":"902779","name":"PEGASO DISCO FLAP","saldo":23,"unit":"UN","rubro":""},{"id":"901315","code":"901315","name":"GRIDEST DISCO P/SENSITIVA","saldo":22,"unit":"UN","rubro":""},{"id":"901227","code":"901227","name":"NORTON DISCO DE CORTE DCBN","saldo":97,"unit":"UN","rubro":""},{"id":"902760","code":"902760","name":"ALIAFOR DISCO DIAM MADERA","saldo":14,"unit":"UN","rubro":""},{"id":"902964","code":"902964","name":"ALIAFOR DISCO DIAM MADERA","saldo":6,"unit":"UN","rubro":""},{"id":"902402","code":"902402","name":"COMPRIBAND TRAPEZOIDAL","saldo":281.0,"unit":"UN","rubro":""}];
+
+// ── ESTADO ──────────────────────────────────────────────────
+let selectedIds = new Set();
+let countData   = {};
+let curFilter   = 'Todos';
+
+// ── UTILIDADES ──────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goToScreen(id){ showScreen(id); }
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function fmtNum(n){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return new Intl.NumberFormat('es-AR',{maximumFractionDigits:3}).format(n);
+}
+
+// ── HOME ────────────────────────────────────────────────────
+function initHome(){
+  const rubros=new Set(ALL_ITEMS.map(i=>i.rubro).filter(Boolean));
+  document.getElementById('statRubros').textContent=rubros.size;
+  if(selectedIds.size>0){
+    document.getElementById('resumeSection').style.display='block';
+  }
+}
+
+// ── BÚSQUEDA ────────────────────────────────────────────────
+function goToSearch(){
+  buildFilters();
+  filterItems();
+  document.getElementById('searchInput').value='';
+  showScreen('screen-search');
+}
+
+function buildFilters(){
+  const rubros=['Todos',...new Set(ALL_ITEMS.map(i=>i.rubro).filter(Boolean))].sort();
+  const row=document.getElementById('filterRow');
+  row.innerHTML='';
+  rubros.forEach(r=>{
+    const c=document.createElement('div');
+    c.className='filter-chip'+(r===curFilter?' active':'');
+    c.textContent=r;
+    c.onclick=()=>{curFilter=r;buildFilters();filterItems();};
+    row.appendChild(c);
+  });
+}
+
+function filterItems(){
+  const q=document.getElementById('searchInput').value.toLowerCase().trim();
+  const list=document.getElementById('itemList');
+  list.innerHTML='';
+  const filtered=ALL_ITEMS.filter(item=>{
+    const mS=!q||item.name.toLowerCase().includes(q)||item.code.includes(q);
+    const mF=curFilter==='Todos'||item.rubro===curFilter;
+    return mS&&mF;
+  });
+  document.getElementById('searchSubtitle').textContent=filtered.length+' artículos'+( selectedIds.size>0?' · '+selectedIds.size+' selec.':'');
+  if(filtered.length===0){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">🔎</div><div class="empty-text">Sin resultados</div></div>';
+    return;
+  }
+  // Mostrar máx 200 para no trabar el celu
+  const show=filtered.slice(0,200);
+  show.forEach(item=>{
+    const card=document.createElement('div');
+    card.className='item-card'+(selectedIds.has(item.id)?' selected':'');
+    card.onclick=()=>toggleItem(item.id,card);
+    const badgeCls=item.saldo<0?'neg':item.saldo>0?'pos':'';
+    card.innerHTML=
+      '<div class="item-code">'+item.code+'</div>'+
+      '<div class="item-name">'+item.name+'</div>'+
+      '<div class="item-meta">'+
+        '<span class="item-badge '+badgeCls+'">Saldo: '+fmtNum(item.saldo)+'</span>'+
+        (item.rubro?'<span class="item-badge">'+item.rubro+'</span>':'')+
+      '</div>';
+    list.appendChild(card);
+  });
+  if(filtered.length>200){
+    const more=document.createElement('div');
+    more.style.cssText='text-align:center;padding:16px;color:var(--text3);font-size:13px';
+    more.textContent='Mostrando 200 de '+filtered.length+' — afinó la búsqueda para ver más';
+    list.appendChild(more);
+  }
+  updateSelectedCount();
+}
+
+function toggleItem(id,cardEl){
+  if(selectedIds.has(id)){
+    selectedIds.delete(id);
+    cardEl.classList.remove('selected');
+  } else {
+    selectedIds.add(id);
+    cardEl.classList.add('selected');
+  }
+  updateSelectedCount();
+}
+
+function updateSelectedCount(){
+  const n=selectedIds.size;
+  document.getElementById('selectedCountNum').textContent=n;
+  document.getElementById('btnIrContar').disabled=n===0;
+}
+
+// ── CONTEO ──────────────────────────────────────────────────
+function goToCount(){
+  if(selectedIds.size===0){showToast('⚠️ Seleccioná al menos un artículo');return;}
+  buildCountScreen();
+  showScreen('screen-count');
+}
+
+function buildCountScreen(){
+  const content=document.getElementById('countContent');
+  content.innerHTML='';
+  const items=ALL_ITEMS.filter(i=>selectedIds.has(i.id));
+  document.getElementById('countSubtitle').textContent=items.length+' materiales';
+  items.forEach(item=>{
+    if(!countData[item.id])countData[item.id]={counted:'',comment:''};
+    const d=countData[item.id];
+    const card=document.createElement('div');
+    card.className='count-item';
+    card.id='count-card-'+item.id;
+    card.innerHTML=
+      '<div class="count-item-header">'+
+        '<div>'+
+          '<div class="count-item-code">'+item.code+'</div>'+
+          '<div class="count-item-name">'+item.name+'</div>'+
+        '</div>'+
+        (item.rubro?'<div class="count-item-rubro">'+item.rubro+'</div>':'')+
+      '</div>'+
+      '<div class="count-grid">'+
+        '<div>'+
+          '<div class="count-label">📋 Sistema</div>'+
+          '<div class="count-value">'+fmtNum(item.saldo)+'</div>'+
+        '</div>'+
+        '<div>'+
+          '<div class="count-label">✋ Contado</div>'+
+          '<input type="number" class="count-input" id="inp-'+item.id+'" placeholder="0" value="'+d.counted+'" step="any" inputmode="decimal" oninput="updateDiff(\''+item.id+'\')">'+
+        '</div>'+
+      '</div>'+
+      '<div class="diff-field">'+
+        '<div class="count-label">⚖️ Diferencia</div>'+
+        '<div class="diff-value zero" id="diff-'+item.id+'">—</div>'+
+      '</div>'+
+      '<div>'+
+        '<div class="count-label">💬 Comentario</div>'+
+        '<textarea class="comment-area" id="com-'+item.id+'" placeholder="Motivo de la diferencia..." oninput="saveComment(\''+item.id+'\')">'+d.comment+'</textarea>'+
+      '</div>';
+    content.appendChild(card);
+    if(d.counted!=='')updateDiff(item.id);
+  });
+  updateCompletedCount();
+}
+
+function updateDiff(itemId){
+  const inp=document.getElementById('inp-'+itemId);
+  const diffEl=document.getElementById('diff-'+itemId);
+  const item=ALL_ITEMS.find(i=>i.id===itemId);
+  const counted=parseFloat(inp.value);
+  countData[itemId].counted=inp.value;
+  if(isNaN(counted)||inp.value===''){
+    diffEl.textContent='—'; diffEl.className='diff-value zero';
+  } else {
+    const diff=counted-item.saldo;
+    diffEl.textContent=(diff>=0?'+':'')+fmtNum(diff);
+    diffEl.className='diff-value '+(diff===0?'ok':'warn');
+  }
+  updateCompletedCount();
+}
+
+function saveComment(itemId){
+  const ta=document.getElementById('com-'+itemId);
+  if(ta)countData[itemId].comment=ta.value;
+}
+
+function updateCompletedCount(){
+  const items=ALL_ITEMS.filter(i=>selectedIds.has(i.id));
+  const done=items.filter(i=>countData[i.id]&&countData[i.id].counted!=='').length;
+  document.getElementById('completedCount').textContent=done+'/'+items.length;
+}
+
+// ── REPORTE ─────────────────────────────────────────────────
+function goToReport(){
+  buildReport();
+  showScreen('screen-report');
+}
+
+function buildReport(){
+  const now=new Date();
+  document.getElementById('reportDate').textContent=
+    now.toLocaleDateString('es-AR')+' '+now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const items=ALL_ITEMS.filter(i=>selectedIds.has(i.id));
+  let ok=0,diff=0;
+  const list=document.getElementById('reportList');
+  list.innerHTML='';
+  items.forEach(item=>{
+    const d=countData[item.id]||{};
+    const counted=parseFloat(d.counted);
+    const has=!isNaN(counted)&&d.counted!=='';
+    const difference=has?counted-item.saldo:null;
+    if(has){if(difference===0)ok++;else diff++;}
+    let dc='zero',dt='Sin contar';
+    if(has){if(difference===0){dc='ok';dt='±0';}else{dc='warn';dt=(difference>0?'+':'')+fmtNum(difference);}}
+    const card=document.createElement('div');
+    card.className='report-card';
+    card.innerHTML=
+      '<div class="report-card-header">'+
+        '<div>'+
+          '<div style="font-size:10px;color:var(--text3);font-family:var(--mono)">'+item.code+'</div>'+
+          '<div class="report-card-name">'+item.name+'</div>'+
+        '</div>'+
+        '<div class="report-card-diff '+dc+'">'+dt+'</div>'+
+      '</div>'+
+      '<div class="report-card-row">'+
+        '<span>Sistema: '+fmtNum(item.saldo)+'</span>'+
+        '<span>Contado: '+(has?fmtNum(counted):'—')+'</span>'+
+      '</div>'+
+      (d.comment?'<div class="report-card-comment">💬 '+d.comment+'</div>':'');
+    list.appendChild(card);
+  });
+  document.getElementById('repTotal').textContent=items.length;
+  document.getElementById('repOk').textContent=ok;
+  document.getElementById('repDiff').textContent=diff;
+}
+
+// ── EXCEL ───────────────────────────────────────────────────
+function exportExcel(){
+  const items=ALL_ITEMS.filter(i=>selectedIds.has(i.id));
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('es-AR')+' '+now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const rows=[
+    ['LEGION S.A. — Control de Stock Físico'],
+    ['Fecha: '+dateStr+'   |   Informe: 18/05/2026'],
+    [],
+    ['Código','Descripción','Rubro','Saldo Sistema','Contado','Diferencia','Comentario'],
+  ];
+  items.forEach(item=>{
+    const d=countData[item.id]||{};
+    const counted=parseFloat(d.counted);
+    const has=!isNaN(counted)&&d.counted!=='';
+    const diff=has?counted-item.saldo:'';
+    rows.push([item.code,item.name,item.rubro||'',item.saldo,has?counted:'',diff,d.comment||'']);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:10},{wch:50},{wch:18},{wch:14},{wch:14},{wch:14},{wch:40}];
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:6}},{s:{r:1,c:0},e:{r:1,c:6}}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Control Stock');
+  // Solo diferencias
+  const dr=[['ARTÍCULOS CON DIFERENCIA'],['Código','Descripción','Rubro','Saldo Sistema','Contado','Diferencia','Comentario']];
+  items.forEach(item=>{
+    const d=countData[item.id]||{};
+    const counted=parseFloat(d.counted);
+    const has=!isNaN(counted)&&d.counted!=='';
+    const diff=has?counted-item.saldo:null;
+    if(has&&diff!==0)dr.push([item.code,item.name,item.rubro||'',item.saldo,counted,diff,d.comment||'']);
+  });
+  if(dr.length>2){
+    const wd=XLSX.utils.aoa_to_sheet(dr);
+    wd['!cols']=ws['!cols'];
+    XLSX.utils.book_append_sheet(wb,wd,'Solo Diferencias');
+  }
+  const fname='control_stock_'+now.toISOString().slice(0,10)+'.xlsx';
+  XLSX.writeFile(wb,fname);
+  showToast('✅ Excel exportado');
+}
+
+// ── RESET ───────────────────────────────────────────────────
+function resetAll(){
+  if(!confirm('¿Limpiar todo y comenzar un nuevo control?'))return;
+  selectedIds=new Set();
+  countData={};
+  document.getElementById('resumeSection').style.display='none';
+  showScreen('screen-home');
+  showToast('🔄 Control reiniciado');
+}
+
+// ── INIT ────────────────────────────────────────────────────
+initHome();
+</script>
+</body>
+</html>
